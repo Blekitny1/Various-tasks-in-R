@@ -1,0 +1,191 @@
+---
+title: "Raport 6"
+author: "Aleksander Milach"
+date: "29 April 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+t=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/individuals.dat"))
+
+```
+##Zadanie 1
+
+```{r z1setup, echo=TRUE}
+n=dim(t)[1]
+PR3=table(t[[3]])["3"]/n
+PR6=table(t[[3]])["6"]/n
+qq=qnorm(0.975)
+pzfalka=function(y) (y+.5*qnorm(.975)^2)/(200+qnorm(.975)^2)
+SE=function (y) sqrt(((y+.5*qnorm(.975)^2)/(200+qnorm(.975)^2))*  
+                       (1-(y+.5*qnorm(.975)^2)/(200+qnorm(.975)^2))/(200+qnorm(.975)^2))
+K=sapply(1:200,function(i) sample(n,200))
+L=apply(K,2,function(v){
+  y3=table(t[v,3])["3"]/200
+  y6=table(t[v,3])["6"]/200
+  p3=pzfalka(200*y3)
+  p6=pzfalka(200*y6)
+  a=y3-sd(t[v,3]=="3")*qq/sqrt(200)<=PR3 & PR3<=y3+sd(t[v,3]=="3")*qq/sqrt(200)
+  b=y6-sd(t[v,3]=="6")*qq/sqrt(200)<=PR6 & PR6<=y6+sd(t[v,3]=="6")*qq/sqrt(200)
+  d=pzfalka(200*y3)-qq*SE(200*y3)<=PR3 & PR3<=pzfalka(200*y3)+qq*SE(200*y3)
+  e=pzfalka(200*y6)-qq*SE(200*y6)<=PR6 & PR6<=pzfalka(200*y6)+qq*SE(200*y6)
+  lz3=2*sd(t[v,3]=="3")*qq/sqrt(200)
+  lz6=2*sd(t[v,6]=="6")*qq/sqrt(200)
+  lAC3=2*qq*SE(200*y3)
+  lAC6=2*qq*SE(200*y6)
+  c(y3,y6,p3,p6,a,b,d,e,lz3,lz6,lAC3,lAC6)
+})
+```
+
+```{r z1hist, echo=TRUE, fig.align='center',fig.height=4}
+esty3=hist(L[3,],main="Estymator frakcji osób z wykszta³ceniem œrednim",col="cyan",xlab="",freq=FALSE)
+abline(v=PR3,lwd=3,col="green3")
+esty6=hist(L[4,],main="Estymator frakcji osób z wykszta³ceniem wy¿szym",col="cyan",xlab="",freq=FALSE)
+abline(v=PR6,lwd=3,col="green3")
+```
+
+```{r z1tabelka, echo=TRUE}
+V=c(Py3=mean(L[5,]),
+Py6=mean(L[6,]),
+PACy3=mean(L[7,]),
+PACy6=mean(L[8,]),
+
+ly3=mean(L[9,]),
+ly6=mean(L[10,]),
+lACy3=mean(L[11,]),
+lACy6=mean(L[12,]))
+
+MMM=matrix(V,2,4)
+rownames(MMM)=c("Wykszta³cenie œrednie","Wykszta³cenie wy¿sze")
+kable(MMM,col.names=c("P-stwo pokrycia dla klasycznego PU",  
+                      "P-stwo pokrycia dla PU metod¹ Agrestiego-Coulla",  
+                      "D³ugoœæ dla klasycznego PU","D³ugoœæ dla PU metod¹ Agrestiego-Coulla")  
+      ,digits=3,row.names=TRUE,format="markdown")
+```
+
+##Zadanie 2
+
+```{r z2wzory, echo=TRUE}
+#rsr=mean(X2)-mean(X1)
+#SE1=sd(X1)/sqrt(n1)
+#SE2=sd(X2)/sqrt(n2)
+#NSE=sqrt(SE1^2+SE2^2)
+#SS1=var(X1)*(n1-1)
+#SS2=var(X2)*(n2-1)
+#Sc2=(SS1+SS2)/(n1+n2-2)
+#USE=sqrt(Sc2*(n1+n2)/n1/n2)
+#Ndf=((SE1^2+SE2^2)^2)/(((SE1^4)/(n1-1))+((SE2^4)/(n2-1)))
+#Udf=n1+n2-2
+#NQ=qt(.975,Ndf)
+#UQ=qt(.975,Udf)
+```
+Po wstawieniu powy¿szych wzorów do wzoru na kwantyl rozk³adu studenta i SE dostajemy zale¿noœæ na $t(df)_{\alpha/2} SE_{(\overline{y2}-\overline{y1})}$ od wektorów X1 i X2 zawieraj¹cych dwie próby n1 i n2 elementowe, dla nieuœrednionej i uœrednionej wariancji.
+
+```{r z2funkcje, echo=TRUE}
+
+Nqse=function(X1,X2) qt(.975,(((sd(X1)/sqrt(n1))^2+(sd(X2)/sqrt(n2))^2)^2)/  
+                          ((((sd(X1)/sqrt(n1))^4)/(n1-1))+(((sd(X2)/sqrt(n2))^4)/  
+                                                             (n2-1))))*sqrt((sd(X1)/sqrt(n1))^2+(sd(X2)/sqrt(n2))^2)
+Uqse=function(X1,X2) qt(.975,n1+n2-2)*sqrt((var(X1)*(n1-1)+var(X2)*(n2-1))/(n1+n2-2)*(n1+n2)/n1/n2)
+```
+
+#Podpunkt a
+
+y1=5xN(0,1); y2=10xN(20,10)
+```{r z2a, echo=TRUE}
+n1=5
+n2=10
+A1=sapply(1:1000,function(i) rnorm(5,0,1))
+A2=sapply(1:1000,function(i) rnorm(10,20,10))
+A=rbind(A1,A2)
+
+X=apply(A,2,function(v){
+X1=v[1:5]
+X2=v[6:15]
+rsr=mean(X2)-mean(X1)
+a=rsr-Nqse(X1,X2)<=20 & 20<=rsr+Nqse(X1,X2)
+b=rsr-Uqse(X1,X2)<=20 & 20<=rsr+Uqse(X1,X2)
+d=2*Nqse(X1,X2)
+e=2*Uqse(X1,X2)
+c(rsr,a,b,d,e)
+})
+
+V=c(PNa=mean(X[2,]),
+PUa=mean(X[3,]),
+lNa=mean(X[4,]),
+lUb=mean(X[5,]))
+
+MMM=matrix(V,2,2)
+rownames(MMM)=c("Nieuœredniona wariancja","Uœredniona wariancja")
+kable(MMM,col.names=c("P-stwo pokrycia PU","D³ugoœæ dla klasycznego PU"),  
+      digits=3,row.names=TRUE,format="markdown")
+```
+#Podpunkt b
+
+y1=5xN(0,1); y2=10xN(20,1)
+
+```{r z2b, echo=TRUE}
+#Podpunkt b
+n1=5
+n2=10
+B1=sapply(1:1000,function(i) rnorm(5,0,1))
+B2=sapply(1:1000,function(i) rnorm(10,20,1))
+B=rbind(B1,B2)
+
+Y=apply(B,2,function(v){
+  X1=v[1:5]
+  X2=v[6:15]
+  rsr=mean(X2)-mean(X1)
+  a=rsr-Nqse(X1,X2)<=20 & 20<=rsr+Nqse(X1,X2)
+  b=rsr-Uqse(X1,X2)<=20 & 20<=rsr+Uqse(X1,X2)
+  d=2*Nqse(X1,X2)
+  e=2*Uqse(X1,X2)
+  c(rsr,a,b,d,e)
+})
+
+V=c(mean(Y[2,]),
+mean(Y[3,]),
+mean(Y[4,]),
+mean(Y[5,]))
+
+MMM=matrix(V,2,2)
+rownames(MMM)=c("Nieuœredniona wariancja","Uœredniona wariancja")
+kable(MMM,col.names=c("P-stwo pokrycia PU","D³ugoœæ dla klasycznego PU"),  
+      digits=3,row.names=TRUE,format="markdown")
+```
+
+#Podpunkt c
+
+y1=10xN(0,1); y2=10xN(20,10)
+
+```{r z2c, echo=TRUE}
+n1=10
+n2=10
+C1=sapply(1:1000,function(i) rnorm(10,0,1))
+C2=sapply(1:1000,function(i) rnorm(10,20,10))
+C=rbind(C1,C2)
+
+Z=apply(C,2,function(v){
+  X1=v[1:10]
+  X2=v[11:20]
+  rsr=mean(X2)-mean(X1)
+  a=rsr-Nqse(X1,X2)<=20 & 20<=rsr+Nqse(X1,X2)
+  b=rsr-Uqse(X1,X2)<=20 & 20<=rsr+Uqse(X1,X2)
+  d=2*Nqse(X1,X2)
+  e=2*Uqse(X1,X2)
+  c(rsr,a,b,d,e)
+})
+
+V=c(mean(Z[2,]),
+mean(Z[3,]),
+mean(Z[4,]),
+mean(Z[5,]))
+
+MMM=matrix(V,2,2)
+rownames(MMM)=c("Nieuœredniona wariancja","Uœredniona wariancja")
+kable(MMM,col.names=c("P-stwo pokrycia PU","D³ugoœæ dla klasycznego PU"), 
+      digits=3,row.names=TRUE,format="markdown")
+
+```

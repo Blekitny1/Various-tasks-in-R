@@ -1,0 +1,153 @@
+---
+title: "Laboratorium 2"
+author: "Aleksander Milach"
+date: "02/04/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Exercise 1
+
+Let $A \in \mathbb{R}^{3 \times 4}$ and $b \in \mathbb{R} ^3$ as follows 
+$$ A:= \left(  \begin{array}{cccc}
+1 & 0 & 0 & 1/ \sqrt 3 \\
+0 & 1 & 0 & 1/ \sqrt 3 \\
+0 & 0 & 1 & 1/ \sqrt 3
+\end{array} \right)  \quad and  \quad b:= \left( \begin{array}{c}
+1 \\
+1 \\
+-1 \\
+\end{array} \right). $$
+
+A vector $x^* = (1, 1, -1, 0)$ is a solution of $Ax = b$. One may notice, that since $supp(x) = \{1, 2, 3\}$, $A_I = A_I^{-1} = (A_I^T A_I)^{-1} = I$, thus $A_{\bar I}^T  A_I  (A_I^T A_I)^{-1} sign(x^*_I) = (1/ \sqrt 3, 1/ \sqrt 3, 1/ \sqrt 3 ) (1, 1, -1)^T = 1/ \sqrt 3 < 1$, hence $x^*$ satisfies irrepresentable condition.
+
+
+However $\tilde x = (0, 0, -2, \sqrt 3)$ is a different solution of Ax = b, while it is more sparse than $x^*$, therefore $x^*$ is not one of the sparsest solutions.
+
+## Exercise 2
+
+```{r ex2}
+
+set.seed(2020)
+B = matrix(nrow = 200, ncol = 500, rnorm(200 * 500))
+
+col_lengths = apply(B, 2, function(v) return( sqrt(sum(v*v))))
+
+A = matrix(0, 200, 500)
+for (i in 1:500) {
+  A[,i] = B[,i] / col_lengths[i]
+}
+
+G_A = t(A) %*% A
+diag(G_A) = rep(0, 500)
+mut_coh_A = max(abs(G_A))
+
+s = (1 + 1/mut_coh_A) / 2
+```
+
+Let us set a patricular seed and generate a $200 \times 500$ Gaussian 'random' matrix B with i.i.d normal entries, and let us define matrix A as the matrix B with normalized columns.
+
+# 1)
+
+Using the definition of mutual coherence of a matrix, we calculate that $M(A) =$ `r mut_coh_A`. According to one of the propositions, a solution of a linear system is both the unique sparsest solution and the unique BP minimizer, if its $l_0$ norm is strictly smaller than $\frac {1 + {1}/{M(A)}}{2}$ = `r s`. Thus if a solution has two or less non - null components, then it is both 
+the unique sparsest solution and a unique BP minimizer. Hence the set $K_0 = \{ 1, 2\}$.
+
+# 2)
+
+To check for which $k \in \{ 1, ..., 200\}$ the irrepresentable condition holds, we can write a loop, that calculates a value on the left hand side of that condition and after that check for which values of $k$ it is smaller than 1 (for example by using a which function), after that we obtain a set $K_1$.
+
+```{r ex2p2}
+results = numeric(200)
+for (i in 1:200) {
+  
+  sgn_x_star = c(rep(1, i), rep(0, 500 - i))
+  I = 1:i
+  A_I = A[,I]
+  A_minusI = A[,-I]
+  M = t(A_minusI) %*% A_I %*% solve(t(A_I) %*% A_I) %*% sgn_x_star[I]
+  results[i] = max(abs(M))
+  
+}
+
+#K1 =
+which(results<1)
+```
+
+# 3)
+
+One can notice, that $sign(\tilde x) = sign(x^*)$ and $supp(\tilde x) = supp(x^*)$. Moreover, from characterization of BP minimizer, a solution $x$ is a unique BP minimizer if, and only if for each non - zero vector $h$
+from $ker(A)$ $|\sum\limits_{i \in supp(x)} sign(x_i) h_i| < \sum\limits_{i \notin supp(x)} |h_i|$, thus a solution of a linear system is a unique BP minimizer by depending on its sign vector and support set. Hence $\tilde x$ is a unique BP minimizer if, and only if $x^*$ is a unique BP minimizer.
+
+# 4)
+
+Based on the corrolary from task 3, we can calculate a set of sparsities $k \in K_2$ for which $\tilde x$ is a BP minimizer of $Ax = \tilde b$, since the it is the same set as the set of sparsities for which
+$x^*$ is a BP minimizer of $Ax = b$. In this case we check in loop for which $k \in \{ 1, ..., 200 \}$ a numerically obtained BP minimizer is equal to $(1, ..., 1, 0, ..., 0)$, where $k$ is a number of ones in this vector.
+
+```{r ex2p4, warning=FALSE}
+library(ADMM)
+
+improveBP=function(A,b,x)
+{
+  n=nrow(A)
+  p=ncol(A)
+  u=order(abs(x))
+  J=u[1:(p-n)]
+  x0=rep(0,p)
+  A1=A[,-J]
+  v=solve(A1)%*%b
+  x0[-J]=v
+  return(x0)
+}
+
+v = numeric(200)
+for(i in (1:200))
+{
+  x0 = c(rep(1, i), rep(0, 500 - i))  
+  b = A %*% x0
+  BPminimizer = admm.bp(A, b)$x
+  BPbetter=improveBP(A, b, BPminimizer)
+  v[i]=1*(max(abs(BPbetter - x0)) <= 0.000001) 
+
+}
+
+# K2 = 
+which(v == 1)
+```
+
+
+
+We see that $K_0 \subset K_1 \subset K_2$, since mutual coherence condition implies irrepresentable condidition, and irreperesnetable condition implies a solution being a BP minimizer.
+
+# 5)
+
+From the propositions concerning spark of a matrix, we know that if for a solution $x_1$, $||x_1||_0 <$ spark(A) / 2, then $x_1$ is a unique sparsest solution. Additionally, spark of a matrix is always smaller or equal $m + 1$, where $m = min(n, p)$, where $n$ and $p$ are number of rows and columns of the matrix, thus in our case its $m=200$. Moreover we know that the set of real matrices with 200 rows and a particular number of columns (eg. 200), which spark is smaller or equal 200 is negligable with respect to Lebesgue measure. Thus we can assume that spark(A) $=$ 201, thus $x_1$ is the unique
+sparsest solution if $||x_1||_0 \leq 100$.
+
+From previous point, we know that a solution $x_2$ is a unique BP mimizer if $||x_2||_0 \leq 63$, so in this case it is a unique sparsest solution because automatically $||x_2||_0 \leq 100$ too, thus our set $K_3 = \{1, ..., 63\}$.
+
+A set $K_0$ is a lot smaller, then a set $K_3$, while both sets are sets of sparsities for which a solution of a linear system is a unique sparsest solution and a unique BP minimizer. Thus we notice, that the mutual coherence condition is a very strong condition for checking, whether a solution is both a unique sparsest solution and a unique BP minimizer.
+
+
+## Exercise 6
+
+Let $A:= (A_1 | ... | A_p) \in \mathbb{R}^{n \times p}$ where $||A_1||_2 = ... = ||A_p||_2 = 1$, $b \in col(A)$ and $x^*$ be a solution of the linear system $Ax = b$. Let $I:= supp(x^*), A_I$ be the matrix, whose columns are respectively $(A_i)_{i \in I}$ and $sign(x^*_I) = (sign(x^*_i))_{i \in I}$. Let us prove the following implication 
+$$||x^*||_0 \leq \frac{1 + 1/M(A)}{2} \implies \forall j \notin I, |A_j^T A_I (A_I^T A_I)^{-1} sign(x^*_I)| \leq 1.$$
+
+First, let us prove the following result on localization of eigenvalues.
+
+Let Q be a $n \times n$ matrix, with entries $Q_{ij}$. For $i \in \{1, ..., n\}$ let $R_i$ be defined as $R_i = \sum\limits_{j \neq i} |Q_{ij}|$, then every eigenvalue $\lambda$ of Q, $|\lambda - Q_{ii}| < R_i$.
+
+Let $\lambda$ be an eigenvalue of Q. Let us choose a corresponding eigenvector $x$ so that one its component  $x_i$ is equal to 1 and the others are of absolute value less or equal to 1, thus $x_i = 1$ and $|x_j| \leq 1$ for $j \neq i$. Since $Qx = \lambda x$, in particular $\sum\limits_j Q_{ij} x_j = \lambda x_i = \lambda$, which can be rewritten as $\sum\limits_{j \neq i} Q_{ij} x_j = \lambda - Q_{ii}$. Now by applying a triangle inequality $$|\lambda - Q{ii}| = |\sum\limits_{j \neq i} Q_{ij} x_j| \leq \sum\limits_{j \neq i} |Q_{ij}| |x_j| \leq |\sum\limits_{j \neq i} |Q_{ij}| = R_i,$$ which gives a desired bound.
+
+Now, let $k = ||x^*||_0$ and $Q = A^T_I A_I \in \mathbb{R}^{k \times k}$. Since Q is a Gram matrix, its diagonal elements are equal to 1, because A is a normalized matrix, while non diagonal elements are, in absolute value, smaller than M(A), thus by the previous result, each eiqenvalue $\lambda$ of Q satisfies the inequalities $$ 1 - (k-1)M(A) \leq \lambda \leq 1 +(k-1)M(A).$$
+
+From previous result we obtain: $$ \cfrac{1}{1 + (k-1)M(A)} \leq \cfrac{1}{\lambda} \leq \cfrac{1}{1 -(k-1)M(A)}.$$ Since if $\lambda$ is an eigenvalue of matrix B, then $1/ \lambda$ is an eigenvalue of matrix $B^{-1}$. By restricting $k$ with $\cfrac{1 + 1/M(A)}{2}$ and rewriting the second inequality, after simple transformations we get that each eigenvalue of $(A_I^T A_I)^{-1}$ is smaller than $\cfrac{2}{1 + M(A)}$.
+
+Now, one may notice that $A^T_j A_I (A^T_I A_I)^{-1} sign(x^*_I)$ is the scalar product between $A^T_I A_j$ and $(A^T_I A_I)^{-1} sign(x^*_I)$, thus the following inequality holds $$|A^T_j A_I (A^T_I A_I)^{-1} sign(x^*_I)| \leq ||A^T_I A_j||_2 ||(A^T_I A_I)^{-1} sign(x^*_I)||_2 \leq  $$ $$ M(A) \sqrt k \sqrt k ||(A^T_I A_I)^{-1} \cfrac{sign(x^*_I)}{\sqrt k}||_2 \leq M(A) k \cfrac{2}{M(A) + 1} \leq $$ $$ M(A) \cfrac{1 + 1/M(A)}{2} \cfrac{2}{M(A) + 1} = 1.$$
+
+In the inequalities above we restrict each of the components of $A^T_j A_I$ with M(A), since $j \notin supp(x)$, thus the norm of the first vector is smaller than $\sqrt k M(A)$. To restrict the second vector, we normalize $sign(x^*)$, so after that we can use a property of norm of a linearly transformed vector, which maximum value is the largest eigenvalue of the matrix of transformation (this property can be proven by calculating conditional maximum of function $x^T (A^T A) x$ with condition $||x||_2 = 1$). After that we restrict $k$ with its assumed upper bound and the largest eigenvalue of  $A^T_j A_I$ with upper bound calculated earlier, we obtain a final implication.
+
+

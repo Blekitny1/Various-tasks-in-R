@@ -1,0 +1,155 @@
+---
+title: "Raport 1"
+author: "Aleksander Milach"
+date: "16 marca 2018"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("C:/Users/Milach/Desktop/Olek/r")
+t=read.table("table1_6.TXT")
+chl=subset(t,V4=="M")
+dz=subset(t,V4=="F")
+f=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/individuals.dat"))
+
+panowie=subset(f,f[4]=="1")
+panie=subset(f,f[4]=="2")
+panowie[[3]]=as.factor(panowie[[3]]) 
+levels(panowie[[3]])=c("podst","zawo","sr","matura","lic","wyzsze")
+panie[[3]]=as.factor(panie[[3]]) 
+levels(panie[[3]])=c("podst","zawo","sr","matura","lic","wyzsze")
+panowie[[6]]=as.factor(panowie[[6]]) 
+levels(panowie[[6]])=c("prywatny","rzadowy","samo")
+panie[[6]]=as.factor(panie[[6]]) 
+levels(panie[[6]])=c("prywatny","rzadowy","samo")
+```
+
+## Zadanie 1
+
+#Podpunkt a
+```{r his, echo=TRUE, fig.width=14, fig.height=12, fig.align='center'}
+par(mfrow=c(3,1))
+hist(t$V2, main="ANGERY ocen", col=rainbow(11), xlab="", ylab="Gêstoœæ", freq=FALSE)
+hist(t$V3, main="Wynik testu iq",xlim=c(60,150), col=rainbow(7), xlab="", ylab="Gêstoœæ",  
+     freq=FALSE)
+hist(t$V5, main="Wynik testu samo-oceny", breaks=8, col=rainbow(12), xlab="",  
+     ylab="Gêstoœæ", freq=FALSE)
+```
+
+Histogram œredniej ocen uczniów jest jednomodowy(skoncentrowany wokó³ 8), skoœny w lewo, najmniejszy rozrzut, przy osi pionowej. Wykres wyników testu iq równie¿ jest jednomodowy, ale te¿ symetryczny, ma du¿y rozrzut, daleko od osi pionowej. Wykres samo-oceny dzieci jednomodowy, skoœny w lewo, rozrzut podobny jak przy teœcie iq, bli¿ej osi pionowej ni¿ histogram wynikóW testu iq.
+
+```{r rozrzut}
+
+a=c(max(t$V2)-min(t$V2),max(t$V3)-min(t$V3),max(t$V5)-min(t$V5))
+
+```
+Rozrzut œredniej, testu iq, testu samo-oceny wynosz¹ odpowiednio: `r a`.
+
+#Podpunkt b
+
+```{r box, echo=TRUE, fig.align='center', fig.width=14}
+par(mfrow=c(1,3))
+boxplot(chl$V2,dz$V2,main="Œrednia ocen",border=c("cyan3","deeppink3"),col=c("yellow"),  
+        names=c("chlopcy","dziewczynki"), ylab="Œrednia")
+boxplot(chl$V3,dz$V3,main="Test iq", border=c("cyan3","deeppink3"), 
+        col=c("orange"),names=c("chlopcy","dziewczynki"),   ylab="Wynik testu iq")
+boxplot(chl$V5,dz$V5,main="Test samo-oceny", border=c("cyan3","deeppink3"),  
+        col=c("green"),names=c("chlopcy","dziewczynki"), ylab="Wynik testu samo-oecny")
+```
+Œrednia ocen ch³opców ma du¿y rozrzut i "ogon" wskazuj¹cy na bardziej skrajne wyniki obserwacji poni¿ej mediany, u dziewczynek mniejszy rozrzut i wykres bardziej bardziej symetryczny, mediana niemal równa. W teœcie iq ch³opcy wypadli zauwa¿alnie lepiej od dziewczynek(mediana oko³o 7 wiêksza), du¿y rozrzut u obu p³ci, nieznacznie wiêkszy u dziewczynek. Samoocena chlopcow ma znacznie wiêkszy rozrzut niz dziewczynek, zarówno u dziewczynek jak i ch³opców du¿a ró¿nica miêdzy pierwszym a drugim kwartylem. Œrednia i mediana podobne u obu p³ci.
+
+#Podpunkt c
+
+```{r points, echo=TRUE, fig.align='center'}
+
+plot(t$V3,t$V2,xlim=c(20,140),col="orange",main="Rozrzut wyniku testu iq i testu  
+     samo-oceny w zale¿noœci od œredniej ocen",xlab="Samo-ocena lub iq",ylab="Œrednia")
+points(t$V5,t$V2,col='green')  
+legend("bottomright",c("iq","samo-ocena"), col=c("orange","green"), pch=0)
+```
+Tylko przy skrajnie niskich wartoœciach œredniej, iq lub samooceny zda¿aj¹ siê obserwacje daleko od trendu, samoocena ma wiêkszy rozrzut ni¿ iq, niemniej w obu zale¿noœciach wyraŸny trend - proporcjonalnoœæ odpowiednich wartoœci.
+
+##Zadanie 2
+
+#Podpunkt a
+
+```{r ciastka, echo=TRUE, fig.align='center', fig.height=3.5}
+
+par(mfrow=c(1,2))
+pie(table(panowie[[3]]),labels=paste0(levels(panowie[[3]]),  
+                                      "(",round(table(panowie[[3]])/dim(panowie)[1]*100),"%)"),  
+    main="Wykszta³cenie mê¿czyzn",col=rainbow(6),radius=.4)  
+pie(table(panie[[3]]),labels=paste0(levels(panie[[3]]),  
+                                    "(",round(table(panie[[3]])/dim(panie)[1]*100),"%)"),  
+    main="Wykszta³cenie kobiet",col=rainbow(6),radius=.4)  
+pie(table(panowie[[6]]),labels=paste0(levels(panowie[[6]]),  
+                                      "(",round(table(panowie[[6]])/dim(panowie)[1]*100),"%)"),  
+    main="Zatrudnienie mezczyzn",col=c("cyan1","cyan3","cyan4"),radius=.6)  
+pie(table(panie[[6]]),labels=paste0(levels(panie[[6]]),  
+                                    "(",round(table(panie[[6]])/dim(panie)[1]*100),"%)"),  
+    main="Zatrudnienie kobiet",col=c("deeppink1","deeppink3","deeppink4"),radius=.6)  
+```
+Prawie 2 razy wiêcej mê¿czyzn ni¿ kobiet ma tylko wykszta³cenie podstawowe, wiêcej kobiet zakoñczy³o edukacjê na egzaminie maturalnym. Wiêkszy procent osób z wy¿szym wykszta³cniem jest wœród mê¿czyzn. Podobny odsetek zatrudnionych w prywatnym u obu p³ci(znaczna wiekszosc). Ró¿nica wystêpuje w pozosta³ych sektorach zatrudnienia: 1,5 raza wiêkszy procent mê¿czyzn ni¿ kobiet jest samozatrudnionych oraz 1,5 raza wiêkszy procent kobiet ni¿ mê¿czyzn w sektorze rz¹dowym.
+
+#Podpunkt b
+
+```{r dochf, echo=TRUE, fig.align='center', fig.height=12, fig.width=15}
+
+par(mfrow=c(2,1))
+barplot(by(panowie[[5]],paste0(panowie[[3]],",\n",panowie[[6]]),mean),  
+        las=2,cex.names=1,ylim=c(0,60000),main=  
+          "Dochód w zale¿noœci od wykszta³cenia i zatrudnienia - mê¿czyŸni",col=  
+          c("cyan1","cyan3","cyan4") )
+barplot(by(panie[[5]],paste0(panie[[3]],",\n",panie[[6]]),mean),  
+        las=2,cex.names=1,ylim=c(0,60000),main=  
+          "Dochód w zale¿noœci od wykszta³cenia i zatrudnienia - kobiety",col=  
+          c("deeppink1","deeppink3","deeppink4"))
+```
+Po znormalizowaniu osi Y s³upki mê¿czyzn s¹ ogólnie wy¿sze. Mê¿czyŸni po studiach (o ile nie licencjaci w sektorze  rz¹dowym oraz kobiety z wykszta³ceniem wy¿szym stanowi¹ elitê - zarabiaj¹ co najmniej 10000 wiêcej od reszty spo³eczeñstwa. Zarobki osób z wyszta³ceniem postawowym lub zawodowym oraz maturalnym i œrednim s¹ porównywalne.
+
+#Podpunkt c
+
+```{r wykdoch, echo=TRUE, fig.align='center'}
+
+hist(f[[5]],main="Histogram dochodu",col=rainbow(40),xlab="Dochód",  
+     ylab="Liczba obserwacji",xlim=c(0,250000))
+```
+```{r ff}
+
+a=c(mean(f[[5]]),median(f[[5]]),mean(f[[5]])/median(f[[5]]),max(f[[5]])-min(f[[5]]))
+
+```
+Histogram dochodu skupiony blisko osi Y, skoœny w prawo, ma bardzo duzy rozrzut, œrednia du¿o wy¿sza od mediany.
+Œrednia, mediana, wspó³czynnik zmiennoœci i rozrzut wynosz¹ kolejno 37864.61, 29170, 1.274173, 450508.
+
+#Podpunkt d
+
+```{r ln, echo=TRUE, fig.align='center'}
+
+ld=log(f[[5]][f[[5]]>0])
+hist(ld,main="Logarytm dochodu",col=rainbow(10),xlab="",ylab="Liczba obserwacji",xlim=c(0,14))
+
+```
+```{r ld}
+
+a=c(mean(ld),median(ld),mean(ld)/median(ld),max(ld)-min(ld))
+
+```
+Histogram oddalony od osi y, jednomodowy symetryczny z œrodkiem w 10; znaczna wiêkszoœæ ma logarytm dochodu miêdzy 9 a 12. Mediana bardzo nieznacznie wy¿sza od œredniej, wci¹¿ histogram ma bardzo du¿y rozrzut. Kolejno œrednia, mediana, wspó³czynnik zmiennoœci i rozrzut: `r a` .
+
+#Podpunkt e
+
+```{r ost, echo=TRUE, fig.align='center', fig.height=10, fig.width=20}
+
+library(lattice)
+par(mfrow=c(1,2))
+xyplot(panowie[[5]]~panowie[[2]],main="Rozrzut dochodu w zale¿noœci od wieku - 
+       mê¿czyŸni",xlab="Wiek",ylab="Dochód",ylim=c(0,400000),col="cyan4",auto.key=TRUE)
+xyplot(panie[[5]]~panie[[2]],main="Rozrzut dochodu w zale¿noœci od wieku -  
+       kobiety",xlab="Wiek",ylab="Dochód",ylim=c(0,400000),col="deeppink3",auto.key=TRUE)
+
+```
+U mê¿czyzn do 33 roku ¿ycia dochód zauwa¿alnie roœnie, pojawia sie te¿ elitarna grupa zarabiaj¹cych oko³o 23000, po 60 roku ¿ycia dochody malej¹. Na wykresie dochodu koiet zagêszczenie obserwacji jest ni¿sze( u mê¿czyzn na oko³o10000, u kobiet oko³o 8000), podobny rozrzut obserwacji, ale u kobiet wraz ze wzrostem dochodu iloœæ obserwacji maleje szybciej ni¿ u mê¿czyzn. U obu grup mo¿na wyró¿niæ wyraŸny trend wzorst p³acy do 30 roku ¿ycia i jej spadek po 60 roku ¿ycia.

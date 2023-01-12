@@ -1,0 +1,87 @@
+---
+title: "Raport 1"
+author: "Aleksander Milach"
+date: "9 March 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(ROCR)
+```
+
+```{r prep, warning=FALSE}
+A<-structure(list(
+numeracy = c(6.6, 7.1, 7.3, 7.5, 7.9, 7.9, 8, 8.2, 8.3, 8.3, 8.4, 8.4, 8.6, 8.7, 8.8, 8.8, 9.1, 9.1,
+            9.1, 9.3, 9.5, 9.8, 10.1, 10.5, 10.6, 10.6, 10.6, 10.7, 10.8, 11, 11.1, 11.2, 11.3, 12, 12.3, 12.4, 12.8,
+            12.8, 12.9, 13.4, 13.5, 13.6, 13.8, 14.2, 14.3, 14.5, 14.6, 15, 15.1, 15.7),
+anxiety = c(13.8, 14.6, 17.4, 14.9, 13.4, 13.5, 13.8, 16.6, 13.5, 15.7, 13.6, 14, 16.1, 10.5, 16.9, 17.4, 13.9, 15.8,
+            16.4, 14.7, 15, 13.3, 10.9, 12.4, 12.9, 16.6, 16.9, 15.4, 13.1, 17.3, 13.1, 14, 17.7, 10.6, 14.7, 10.1, 
+            11.6, 14.2, 12.1, 13.9, 11.4, 15.1, 13, 11.3, 11.4, 10.4, 14.4, 11, 14, 13.4),
+success = c(0L, 0L, 0L, 1L, 0L, 1L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, 1L, 1L, 1L, 0L, 0L,
+            0L, 1L, 0L, 1L, 0L, 0L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L)),
+.Names = c('numeracy','anxiety', 'success'), row.names = c(NA, -50L), class = 'data.frame')
+
+b=data.frame(list(anxiety=13,numeracy=10))
+
+M1=glm(success~numeracy+anxiety,data = A,family=binomial('logit'))
+M2=glm(success~numeracy+anxiety,data = A,family=binomial('probit'))
+M3=glm(success~numeracy+anxiety,data = A,family=binomial('cauchit'))
+M4=glm(success~numeracy+anxiety,data = A,family=binomial('cloglog'))
+
+ROC=function(M){
+ps=predict(M,type='response')
+pred=prediction(ps,A$success)
+perf=performance(pred,'tpr','fpr')
+plot(perf)
+}
+```
+
+```{r c1}
+N=cbind(
+c(summary(M1)$coefficients[,1],
+summary(M1)$coefficients[,4]<0.05,
+predict(M1,newdata = b,type='response')),
+
+c(summary(M2)$coefficients[,1],
+summary(M2)$coefficients[,4]<0.05,
+predict(M2,newdata = b,type='response')),
+
+c(summary(M3)$coefficients[,1],
+summary(M3)$coefficients[,4]<0.05,
+predict(M3,newdata=b,type='response')),
+
+c(summary(M4)$coefficients[,1],
+summary(M4)$coefficients[,4]<0.05,
+predict(M4,newdata=b,type='response')))
+
+v=c('Logit','Probit','Cauchit','Cloglog')
+
+ROC=function(M,i){
+ps=predict(M,type='response')
+pred=prediction(ps,A$success)
+perf=performance(pred,'tpr','fpr')
+plot(perf,main=v[i])
+}
+
+rownames(N)=c('Est. intercept','Est. numeracy','Est. anxiety','Istotnosc intercept','Istotnosc numeracy','Istotnosc anxiety','Podpunkt c')
+
+colnames(N)=c('Logit','Probit','Cauchit','Cloglog')
+
+kable(N,format='markdown')
+```
+
+Dla funkcji Logit i Probit wszystkie wspó³czynniki regersji s¹ istotne, prawdopodobieñstwo do obliczenia w podpunkcie c ró¿ni siê od reszty tylko w funkcji Cloglog. Zatem lepsze dopasowanie modelu do danych proponuj¹ funkcji Logit i Probit.
+
+```{r c2}
+par(mfrow=c(2,2))
+ROC(M1,1)
+ROC(M2,2)
+ROC(M3,3)
+ROC(M4,4)
+par(mfrow=c(1,1))
+
+```
+
+Ka¿da z krzywych ROC prawie nie ró¿ni siê od pozosta³ych, zatem dla ka¿dej z funkcji linkuj¹cych uzyskujemy model o podobych w³aœciwoœciach predykcyjnych.

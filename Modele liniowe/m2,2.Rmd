@@ -1,0 +1,84 @@
+---
+title: "Raport 2,5"
+author: "Aleksander Milach"
+date: "12 November 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Zadanie 6
+
+```{r z6,echo=TRUE,warning=F,fig.height=3.4}
+n=40
+sig2=120
+ssx=1000
+alpha=.05
+sig2b1=sig2/ssx
+df=n-2
+tc=qt(1-alpha/2,df)
+beta1=seq(from=-2.0, to= 2.0, by= .05)
+delta=beta1/sqrt(sig2b1)
+powerr<-function(beta1)  
+  {1-pt(qt(1-alpha/2,df),df,beta1/sqrt(sig2b1))+pt(-qt(1-alpha/2,df),df,beta1/sqrt(sig2b1))}
+
+plot(beta1,powerr(beta1),type='l',main="Wykres funkcji teoretycznej mocy od beta1",xlab="",ylab="")
+```
+
+Wartoœæ funkcji powerr dla argumentu 1, to jest moc dla $\beta_1=1$ wynosi `r powerr(1)`.
+
+#Zadanie 7
+
+```{r z7,echo=T}
+library(knitr)
+alpha=.05
+wynik=numeric(1000)
+n=200
+X=rnorm(n,0,0.005)
+
+normal=function (beta1)
+{
+for(i in 1:1000)
+{
+    eps=rnorm(n,0,1)
+    b1=beta1
+    Y=5+b1*X+eps
+    wynik[i]=summary(lm(Y~X))$coefficients[2,4]<alpha
+}
+mean(wynik)
+}
+
+expon=function (beta1)
+{
+for(i in 1:1000)
+{
+    eps=rexp(n)
+    b1=beta1
+    Y=5+b1*X+eps
+    wynik[i]=summary(lm(Y~X))$coefficients[2,4]<alpha
+}
+mean(wynik)
+}
+
+a=normal(0)
+b=expon(0)
+c=normal(1.5)
+d=expon(1.5)
+
+sig2=1
+SSX=var(X)*(n-1)
+sig2b1=sig2/SSX
+df=n-2
+tc=qt(1-alpha/2,df)
+delta=beta1/sqrt(sig2b1)
+moc=powerr(1.5)
+
+wektor=matrix(c(a,b,c,d,moc),1,5)
+kable(wektor,col.names=c("Podpunkt a","Podpunkt b",  
+                         "Podpunkt c","Podpunkt d","Moc dla podpunktów c i d"),format="markdown")
+
+```
+
+Zarówno prawdopodobieñstwo b³êdu I rodzaju jak i moc testu s¹ bardzo bliskie 5%. W ka¿dym z czterech przypadków hipotezê zerow¹ odrzuciliœmy w oko³o 50 przypadkach, niezale¿nie od tego czy by³a ona prawdziwa czy nie, czy z jakiego rozk³adu losowaliœmy wartoœci b³êdu. Przyczyn¹ tych wyników s¹ bardzo ma³e wartoœci X. Przez to nie mia³o znaczenia to czy X mno¿ymy przez 0 czy przez 1.5 bo niemal nie zauwa¿ymy tego sk³adnika dodaj¹c go do znacznie wiêkszej wartoœci resztowej. 

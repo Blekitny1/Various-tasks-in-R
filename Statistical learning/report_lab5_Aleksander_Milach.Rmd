@@ -1,0 +1,154 @@
+---
+title: "Laboratorium 5"
+author: "Aleksander Milach"
+date: "17/06/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(pracma)
+```
+
+# Exercise 1
+
+```{r ex1, fig.align='center'}
+
+n = 10
+mse = function(z,t){
+  return(sum((z-rep(t, n))^2))
+}
+
+
+ex1 = function(t){
+  Z = rnorm(n, mean = t)
+  m = mse(Z, t)
+  js = Z - (n-2) * Z /sum(Z^2)
+  return(mse(js, t))
+}
+
+
+ex11 = function(t){
+  return(mean(sapply(rep(t, 10000), ex1)))
+}
+
+answ_ex1 = sapply(seq(0, 10, 0.1), ex11)
+plot(seq(0, 10, 0.1), answ_ex1, pch = 19, col = 'purple3', xlab = "t", ylab = '', main = "MSE of James-Stein estimator")
+abline(h = n, col = 'cyan3', lwd = 3)
+```
+
+For values of parameter $t$ - the means of a random vector $Z$, the mean squared error of James - Stein estimator is always just below the value of that parameter for $Z$. For values of $t$ closer to 0, the difference is getting larger, the closer to 0 we are.
+
+# Exercise 2
+
+## Point 1)
+
+We are going to proof a following inequality $$P\left(\exists i \notin supp(\beta) : \hat\beta_i (\lambda_0) \neq 0 \right) \leq \alpha,$$ where $\lambda_0 = \phi^{-1} \left( \cfrac{1 + \sqrt[^p]{1-\alpha}}{2} \right).$
+
+Let us notice first, that since when $X$ is an orthogonal matrix, $\hat \beta^{OLS} = X^TY = X^T(X \beta + \epsilon) = X^T X \beta + X^T X \epsilon$, if $\beta_i = 0$ namely $i \notin supp(\beta)$, $\hat \beta^{OLS}_i \sim  N(0, 1)$. Now we can use a property of quantile function of normal distribution for that variable $$P \left(|\hat \beta^{OLS}_i| \leq \phi^{-1} \left( \cfrac{1 + \sqrt[^p]{1-\alpha}}{2} \right): i \notin supp(\beta) \right) = \sqrt[^p]{1-\alpha},$$ which is equivalent to $$P \left(|\hat\beta^{OLS}_i| \leq \lambda_0: i \notin supp(\beta) \right) = \sqrt[^p]{1-\alpha}.$$ Now we can use a property of LASSO estimator, which by its construction is equal to 0, when the absolute value of OLS estimator is smaller than the value of the tuning parameter, namely $$P \left(\hat\beta_i (\lambda_0) = 0 :  i \notin supp(\beta) \right) = P \left(|\hat\beta^{OLS}_i| \leq \lambda_0: i \notin supp(\beta) \right) = \sqrt[^p]{1-\alpha},$$ which gives $$P \left(\hat\beta_i (\lambda_0) = 0 : \forall_i \notin supp(\beta) \right) \geq \left( \sqrt[^p]{1-\alpha} \right) ^p = 1 - \alpha,$$ thus by calculating the probability of the opposite event $$P\left(\exists i \notin supp(\beta) : \hat\beta_i (\lambda_0) \neq 0 \right) \leq \alpha.$$
+
+
+
+## Point 2)
+
+```{r ex22, fig.align='center'}
+n = 10
+p = 5
+sigma = 1
+a = 0.05
+beta = c(3, 1, 0, 0, 0)
+set.seed(2020)
+X = randortho(10)[,1:5]
+eps = rnorm(10)
+
+Y = X %*% beta + eps
+
+beta_ols = t(X) %*% Y
+
+l0_norm = function(v){
+  return(sum(v != 0))
+}
+
+lasso_est = function(lambda){
+  v = numeric(p)
+  for (i in 1:p){
+    v[i] = sign(beta_ols[i]) * max(0, abs(beta_ols[i]) - lambda)
+  }
+  return (v)
+}
+
+ex2b = function(lambda){
+  return (sum((Y - X%*%lasso_est(lambda))^2) + 2 * l0_norm(lasso_est(lambda)) - 5)
+}
+
+plot(seq(0, 4, 0.025), sapply(seq(0, 4, 0.025), ex2b), pch = 19, col = 'purple3',  
+     main = "MSE of LASSO estimator", xlab = "Tuning parameter", ylab = '')
+abline(v = beta_ols[1], col = 'deeppink3', lwd = 2)
+abline(v = beta_ols[2], col = 'green3', lwd = 3)
+abline(v = beta_ols[3], col = 'deeppink3', lwd = 2)
+abline(v = beta_ols[4], col = 'deeppink3', lwd = 2)
+abline(v = beta_ols[5], col = 'deeppink3', lwd = 2)
+
+lambda_1 = round(beta_ols[2],4)
+minmse = round(ex2b(beta_ols[2]),4)
+```
+
+From the plot we can notice, that MSE is minimal just after the graph crosses the green line corresponding to one of the components of OLS estimator for $\beta$. If we calculate mean squared error for that value of $\lambda$ we obtain, that minimal MSE is reached for $\lambda_1 =$ `r lambda_1` and equals `r minmse`.
+
+## Point 3)
+
+```{r ex23}
+lambda_0 = round(qnorm((1 + (1-a)^(1/p))/2),4)
+
+lasso_est_2 = function(lambda, beta_ols){
+  v = numeric(p)
+  for (i in 1:p){
+    v[i] = sign(beta_ols[i]) * max(0, abs(beta_ols[i]) - lambda)
+  }
+  return (v)
+}
+
+ex2c = function(k){
+  set.seed(k)
+  eps = rnorm(10)
+  Y = X %*% beta + eps
+  beta_ols = t(X) %*% Y
+  val_0 = sum((X %*% lasso_est_2(lambda_0, beta_ols) - X %*% beta)^2)
+  val_1 = sum((X %*% lasso_est_2(lambda_1, beta_ols) - X %*% beta)^2)
+  return (c(val_0, val_1))
+}
+
+m = 1000
+compare_lambdas = sapply(1:m, ex2c)
+m0 = round(mean(compare_lambdas[1,]),4)
+m1 = round(mean(compare_lambdas[2,]),4)
+```
+
+After simulating a lot of values for $\epsilon$ we receive, that the mean squared prediction error for $\lambda_0$ equals `r m0`, and for $\lambda_1$ equals `r m1`. As we expect, the MSE is much lower, when the tuning parameter has a value of $\lambda_1$.
+
+## Point 4)
+
+```{r ex24}
+
+ex2d = function(k){
+  set.seed(k)
+  eps = rnorm(10)
+  Y = X %*% beta + eps
+  beta_ols = t(X) %*% Y
+  v0 = lasso_est_2(lambda_0, beta_ols)
+  v1 = lasso_est_2(lambda_1, beta_ols)
+  fp0 = sum(v0[3:5]>0)
+  fp1 = sum(v1[3:5]>0)
+  return(c(fp0, fp1))
+}
+
+m = 1000
+compare_lambdas2 = sapply(1:m, ex2d)
+w0 = compare_lambdas2[1,]
+w1 = compare_lambdas2[2,]
+fwer0 = round(sum(w0>0)/m,4)
+fwer1 = round(sum(w1>0)/m,4)
+
+```
+
+After simulating a lot of values for $\epsilon$ we receive, that the family wise error rate for $\lambda_0$ equals `r fwer0`, and for $\lambda_1$ equals `r fwer1`. As we expect, the FWER is below $\alpha = 0.05$, when the tuning parameter has a value of $\lambda_0$, however increases greatly for the tuning parameter value $\lambda_1$.

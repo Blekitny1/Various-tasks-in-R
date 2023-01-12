@@ -1,0 +1,58 @@
+---
+title: "Laboratorium 3"
+author: "Aleksander Milach"
+date: "22/04/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Exercise 1
+
+From proposition 2 point iii) we are looking for vectors $x^*$, for which $v := \cfrac{1}{||x^*||} Ax^*$ is on the relative boundary of quotient polytope $conv(\{\pm A_1, \pm A_2, \pm A_3\})$. This condition holds if, and only if $v \in \{\pm (1,0,0), \pm (0,1,0), \pm (0,0,1), \pm (1,1,0), \pm (1,0,1), \pm (0,1,-1)\}$, which concludes, that a vector $x^*$ is identifiable if, and only if $sign(x^*) \in \{(0,0,0), \pm (1,0,0), \pm (0,1,0), \pm (0,0,1), \pm (1,1,0), \pm (1,0,1), \pm (0,1,-1)\}$.
+
+# Exercise 3
+
+$$ \cfrac{\phi(t)}{t} - \cfrac{\phi(t)}{t^3} \leq \bar\Phi (t) \leq \cfrac{\phi(t)}{t} \ .$$
+
+We can prove these inequalities by applying integration by parts to integral $\int_t^\infty \cfrac{1}{z} \  z \ \phi (z) \  dz$, which is equal, to the $\bar\Phi (t)$
+
+
+$$\bar\Phi (t) = \int_t^\infty \cfrac{1}{z} \  z \ \phi (z) \  dz  = \cfrac{- \phi(z)}{z} \Biggr|_{t}^{\infty} - \int_t^\infty \cfrac{1}{z^2} \  \phi (z) \  dz   = \cfrac{\phi(t)}{t} - \int_t^\infty \cfrac{1}{z^2} \  \phi (z) \  dz \ ,$$ which gives the right inequality, since the integral on the right hand side is larger than 0. Continuing this calculations and applying integration by parts again, we obtain the left inequality, since the remaining integral is again larger than 0. $$\bar\Phi (t) = \cfrac{\phi(t)}{t} - \int_t^\infty \cfrac{1}{z^3} \  z \ \phi (z) \  dz = \cfrac{\phi(t)}{t} -  \left( - \cfrac{\phi(z)}{z^3} \Biggr|_{t}^{\infty} -  \int_t^\infty \cfrac{3}{z^4} \  \phi (z) \  dz \right) = \cfrac{\phi(t)}{t} - \cfrac{\phi(t)}{t^3} + \int_t^\infty \cfrac{3}{z^4} \  \phi (z) \  dz \ .$$
+
+
+From the inequalities above we obtain that: $$\delta (t) = \cfrac{2 \phi (t)}{t + 2(\phi (t) - t \bar\Phi (t))} \leq \cfrac{2 \phi (t)}{t + 0} = \cfrac{2 \phi (t)}{t}$$, $$\rho (t) = \cfrac{\phi (t) - t \bar\Phi (t)}{\phi (t)} \leq \cfrac{\phi (t) - \phi (t) + \cfrac{\phi (t)}{t^2}}{\phi (t)} = \cfrac{1}{t^2}$$
+
+```{r ex3}
+
+w = sapply(seq(0.05, 0.15, by = 0.001), function(x) {sqrt(2*x/pi) * exp(-1/2/x)})
+plot(w, seq(0.05, 0.15, by = 0.001), main = 'Inverse of the function u > 0 -> sqrt(2u/pi) exp(-0.5/u)',  
+     xlab = "", ylab = "", pch = 20, col = 'deeppink3')
+points(0.001, 0.1, col = 'cyan3', lwd = 3, pch = 20)
+```
+
+To know, whether the probability that x* is identifible with respect to Z and the $l^1$ norm is almost 0, we need to check if $\rho_{DT} (\cfrac{n}{p}) < \cfrac{k}{n}$, which is in this case is equivalent to check if $\rho_{DT} (\cfrac{1}{1000}) < \cfrac{1}{10}$. The curve we plotted is above the APTC, and the point $(0.001, 0.1)$ (since we consider an inverse of the function mentioned in the exercise) is above it, thus the conditions above are indeed fulfilled, hence the probability that $x^*$ is identifible with respect to Z and the $l^1$ norm is almost 0.
+
+# Exercise 4
+
+Using the lower bound of APTC and then finding the lowest natural number $n_1$ for which $$\cfrac{50}{n_1} < \cfrac{0.5}{1 - \ln (\cfrac{n_1}{2500})}.$$ After calculating this (for example using such code in R 'sapply(50:2500, function(x) {50/x < 0.5/(1 - log(x/2500))}))' ) we obtain, that $n_1 = 310$. After solving the discussed BP problem and looking at the image we obtain we see, that for such number of linear measurements we can fully recover the matrix I.
+
+When solving the BP problem mentioned earlier for $n \in \{250, 255, ..., 280 \}$ we see that the first image that looks exactly the same as the original image is generated for $n_0=270$.
+
+```{r ex4aptc}
+phibar = function(x) {1 - pnorm(x)}
+
+n0 = 270
+d = function(x) {2*dnorm(x) / (x + 2*(dnorm(x) - x*phibar(x)))}
+p = function(x) {(dnorm(x) - x * phibar(x)) / dnorm(x)}
+
+v = sapply(seq(0, 8, by = 0.05), function(x) {return(c(d(x), p(x)))})
+plot(v[1,], v[2,], ylim = c(0,1), col = 'deeppink3', pch = 20,  
+     xlab = '', ylab = '', main = 'Asymptotic phase transition curve')                                  
+
+points(n0/2500, 50/n0, col = 'cyan3', pch = 20, lwd = 4)
+```
+
+From the plot above, we can notice, that the point $(\cfrac{n_0}{2500}, \cfrac{50}{n_0})$ is just below the APTC, thus from the corollary from theorem 1 we can deduce, that for that for $n_0$ we can recover the sparsest solution, which we have already checked in previous point.

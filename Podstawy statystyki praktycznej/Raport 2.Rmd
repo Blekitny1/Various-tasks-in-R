@@ -1,0 +1,147 @@
+---
+title: "Raport 2"
+author: "Aleksander Milach"
+date: "24 March 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+t=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/individuals.dat"))
+t[[3]]=as.factor(t[[3]])
+levels(t[[3]])=c("podst","zawo","sr","matura","lic","wyzsze")
+t[[6]]=as.factor(t[[6]])
+levels(t[[6]])=c("prywatny","rzadowy","samo")
+```
+#Zadanie 1
+
+```{r podstawy,echo=TRUE}
+a=c(mean(t[[5]]),median(t[[5]]),sd(t[[5]]),IQR(t[[5]]),sum(as.numeric(t[[3]])>=5)/dim(t)[1]*100)
+kable(t(a),col.names=c("Œrednia dochodu","Mediana dochodu","SD dochodu","IQR dochodu",  
+                       "Procent osób z co najmniej licencjatem"),digits=2,format ="markdown")
+
+```
+
+```{r +-2sd,echo=TRUE}
+x=sum((t[[5]]>=mean(t[[5]]-2*sd(t[[5]])) & t[[5]]<=mean(t[[5]]+2*sd(t[[5]]))))
+y=(x/dim(t)[1]*100)
+```
+Czêœæ osób z zarobkami w przedziale $[œrednia-2\sigma,œrednia+2\sigma]$ to `r y`, w tym przypadku to nawet wiêcej obserwacji ni¿ w oszacowaniu z wyk³adu (95%).
+
+#Podpunkt a
+
+```{r pa, echo=TRUE}
+u=array(0,c(10,5,1000))
+for(j in 1:10)
+{
+  s=t[sample(dim(t)[1],1000),c(3,5)]
+  u[j,,]=sapply(1:1000, function(i) c(mean(s[1:i,2]),median(s[1:i,2]),sd(s[1:i,2]),  
+                                      IQR(s[1:i,2]),sum(as.numeric(s[1:i,1])>=5)/i*100) )
+}
+```
+
+```{r wyk_a, echo=TRUE, fig.align='center', fig.height=3.7}
+matplot(t(u[,1,]),type="l",col="green4",xlab="Liczba obserwacji",ylab="",  
+        main="Srednie w 10 eksperymentach")
+abline(mean(t[[5]]),0,col="cyan3")
+
+matplot(t(u[,2,]),type="l",col="green4",xlab="Liczba obserwacji",ylab="",  
+        main="Mediany w 10 eksperymentach")
+abline(median(t[[5]]),0,col="cyan3")
+
+matplot(t(u[,3,]),type="l",col="green4",xlab="Liczba obserwacji",ylab="",  
+        main="SD w 10 eksperymentach")
+abline(sd(t[[5]]),0,col="cyan3")
+
+matplot(t(u[,4,]),type="l",col="green4",xlab="Liczba obserwacji",ylab="",  
+        main="IQR w 10 eksperymentach")
+abline(IQR(t[[5]]),0,col="cyan3")
+
+matplot(t(u[,5,]),type="l",col="green4",xlab="Liczba obserwacji",ylab="",  
+        main="Procent co najmniej licencjatów w 10 eksperymentach")
+abline(sum(as.numeric(t[[3]])>=5)/dim(t)[1]*100,0,col="cyan3")
+```
+
+#Podpunkt b
+
+```{r podb, echo=TRUE}
+
+M=matrix(0,10,1000)
+for(j in 1:10)
+{  
+  set.seed(j+10)
+p=round(table(t[[6]])/dim(t)[1]*100)
+prywatni=which(t[[6]]==names(p)[1]) 
+rzadowi=which(t[[6]]==names(p)[2])
+sami=which(t[[6]]==names(p)[3])
+M[j,]=as.vector(rbind(matrix(sample(prywatni,10*p[1]),p[1],10),
+matrix(sample(rzadowi,10*p[2]),p[2],10),
+matrix(sample(sami,10*p[3]),p[3],10)))
+}
+```
+
+```{r wyk_B, echo=TRUE, fig.align='center', fig.height=3.6}
+plot(0,xlim=c(1,10),ylim=c(33000,44000),xlab="Ilosc grup",ylab="",  
+     main="Srednie po dodawaniu kolejnych grup")
+for(k in 1:10)
+{
+  points(sapply(1:10, function(i) mean(t[M[k,][1:(100*i)],5])),type="l",col="green4")
+}
+abline(mean(t[[5]]),0,col="cyan3")
+
+plot(0,xlim=c(1,10),ylim=c(26000,34000),xlab="Ilosc grup",ylab="",  
+     main="Mediany po dodawaniu kolejnych grup")
+for(k in 1:10)
+{
+  points(sapply(1:10, function(i) median(t[M[k,][1:(100*i)],5])),type="l",col="green4")
+}
+abline(median(t[[5]]),0,col="cyan3")
+
+plot(0,xlim=c(1,10),ylim=c(23000,44000),xlab="Ilosc grup",ylab="",  
+     main="SD po dodawaniu kolejnych grup")
+for(k in 1:10)
+{
+  points(sapply(1:10, function(i) sd(t[M[k,][1:(100*i)],5])),type="l",col="green4")
+}
+abline(sd(t[[5]]),0,col="cyan3")
+
+plot(0,xlim=c(1,10),ylim=c(24000,36000),xlab="Ilosc grup",ylab="",  
+     main="IQR po dodawaniu kolejnych grup")
+for(k in 1:10)
+{
+  points(sapply(1:10, function(i) IQR(t[M[k,][1:(100*i)],5])),type="l",col="green4")
+}
+abline(IQR(t[[5]]),0,col="cyan3")
+
+plot(0,xlim=c(1,10),ylim=c(23,40),xlab="Ilosc grup",ylab="",  
+     main="Procenty co najmniej licencjatów po dodawaniu kolejnych grup")
+for(k in 1:10)
+{
+  points(sapply(1:10, function(i) sum(as.numeric(t[M[k,][1:(100*i)],3])>=5)/i),type="l",col="green4")
+}
+abline(sum(as.numeric(t[[3]])>=5)/dim(t)[1]*100,0,col="cyan3")
+```
+
+#Zadanie 2
+
+```{r wdc}
+r=matrix(sample(0:1,10000,replace = TRUE),1000,10) 
+w=rbind(sapply(1:1000,function(i) apply(matrix(r[1:i,],i,10),2,sum)),
+sapply(1:1000,function(i) apply(matrix(r[1:i,],i,10),2,mean)))
+```
+
+```{r wyk2, fig.align='center', results='hide', fig.height=3.2}
+plot(w[1,],type='l',col="green4",xlab="Ilosc rzutow w eksperymencie",ylab="Ilosc orlow")
+sapply(2:10, function(i) points(w[i,], type='l',col="green4"))
+abline(0,0.5,col="cyan3")
+
+
+plot(w[11,],type='l',col="green4",xlab="Ilosc rzutow w eksperymencie",ylab="Frakcja orlow",ylim=c(0,1))
+sapply(12:20, function(i) points(w[i,], type='l',col="green4"))
+abline(0.5,0,col="cyan3")
+```

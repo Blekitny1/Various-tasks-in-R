@@ -1,0 +1,409 @@
+---
+title: "Raport 4"
+author: "Aleksander Milach"
+date: "5 January 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(MASS)
+library(car)
+```
+
+##Zadanie 3
+
+```{r z3prep, echo=TRUE}
+
+l1=numeric(1000)
+l2=numeric(1000)
+l3=numeric(1000)
+l4=numeric(1000)
+l5=numeric(1000)
+l6=numeric(1000)
+
+ X1=mvrnorm(100,c(0,0),matrix(c(.01,.009,.009,.01),2,2))
+ X2=cbind(rep(1,100),X1)
+ 
+ Y=3*X1[,1]+rnorm(100)
+ m0=lm(Y~X1[,1])
+ pu3bl=confint(m0)[2,1]
+ pu3bp=confint(m0)[2,2]
+ pwar=summary(m0)$coefficients[2,4]
+  
+ sdM1=sqrt(1*solve(t(X2[,1:2])%*%X2[,1:2])[2,2])
+ sdM2=sqrt(1*solve(t(X2)%*%X2)[2,2])
+ tc=qt(.975,98)
+ powerM1=1-pt(tc,98,3/sdM1)+pt(-tc,98,3/sdM1)
+ powerM2=1-pt(tc,98,3/sdM2)+pt(-tc,98,3/sdM2)
+```
+
+Przedzia³ ufnoœci dla $\beta_1$ wynosi [`r pu3bl`,`r pu3bp`]. P-wartoœæ dla $\beta_1$ wynosi 0.001020683. Jest mniejsza od 0,05, zatem odrzucamy hipotezê o $\beta_1=0$. Zero jest w przedziale ufnoœci wtedy, i tylko wtedy, gdy brak podstaw do odrzucenia H na rzecz K.
+
+```{r z3, echo=T, fig.align='center', fig.height=4}
+
+for(i in 1:1000){
+ 
+  e=rnorm(100)
+  Y1=3*X1[,1]+e
+  
+  m1=lm(Y1~X1[,1])
+  m2=lm(Y1~X1[,1]+X1[,2])
+  
+  l1[i]=summary(m1)$coefficients[2,4]<.05
+  l2[i]=summary(m2)$coefficients[2,4]<.05
+  l3[i]=summary(m1)$coefficients[2,1]
+  l4[i]=summary(m2)$coefficients[2,1]
+  l5[i]=summary(m1)$coefficients[2,2]
+  l6[i]=summary(m2)$coefficients[2,2]
+}
+
+
+hist(l3,freq=F,xlab="",main="Wartosc estymatora beta 1 w pierwszym modelu")
+abline(v=3,col='cyan3',lwd=3)
+hist(l4,freq=F,xlab="", main="Wartosc estymatora beta 1 w drugim modelu")
+abline(v=3,col='cyan3',lwd=3)
+M=matrix(c(mean(l1),mean(l2),mean(l5),mean(l6),powerM1,powerM2,sdM1,sdM2),2,4,byrow=T)
+colnames(M)=c("Moc w M1","Moc w M2","SD w M1","SD w M2")
+rownames(M)=c("Tyle wyszlo","Teoretyczna wartosc")
+kable(M,format='markdown')
+
+```
+Wartoœci teroetyczne i wyestymowane s¹ bliskie sobie.
+
+##Zadanie 4
+
+#Podpunkt a
+
+```{r z4a, echo=T}
+X=matrix(rnorm(950000,0,.1),1000,950)
+eps=rnorm(1000)
+beta=c(rep(3,5),rep(0,945))
+Y=X%*%beta+eps
+
+podpa=function (k,X){
+    m=lm(Y~X[,1:k])
+    if(k==1){
+      w2=sum((m$fitted.values-X[,1:k]*beta[1:k])^2)
+      w5=NA
+    }
+    else
+    {
+      w2=sum((m$fitted.values-X[,1:k]%*%beta[1:k])^2)
+      w4=summary(m)$coefficients[2,4]
+      w5=summary(m)$coefficients[3,4]
+    }
+  
+  v=c(anova(m)[2,2],
+  w2,
+  AIC(m),
+  summary(m)$coefficients[2,4],
+  w5,
+  sum(summary(m)$coefficients[-(1:5),4]<0.05))
+  v
+}
+
+M=matrix(0,6,8)
+
+numerki=c(1,2,5,10,50,100,500,950)
+for(i in 1:8)
+M[,i]=podpa(numerki[i],X)
+
+strnumerki=c('1','2','5','10','50','100','500','950')
+colnames(M)=strnumerki
+rownames(M)=c('Resztowa SS','MSE','AIC','P-wartosc dla 1','P-wartosc dla 2','Falszywe odkrycia')
+
+bestmodelA=which.min(M[3,])
+
+kable(M,format='markdown')
+```
+
+Kryterium AIC uznaje model `r bestmodelA` za najlepszy.
+
+#Podpunkt b
+
+```{r z4b, echo=T}
+podpb=function(k,X)
+{
+mb=lm(Y~X)
+K=abs(summary(mb)$coefficients[,1])
+names(K)=0:950
+L=sort(K,decreasing=T)
+nKolej=as.integer(names(L)[-which(as.integer(names(L))==0)])
+Xb=matrix(0,1000,950)
+betab=numeric(950)
+for (i in 1:950){
+    Xb[,i]=X[,nKolej[i]]
+    betab[i]=beta[nKolej[i]]
+}
+m=lm(Y~Xb[,1:k])
+if(k==1){
+  w2=sum((m$fitted.values-Xb[,1:k]*betab[1:k])^2)
+}
+else
+{
+  w2=sum((m$fitted.values-Xb[,1:k]%*%betab[1:k])^2)
+}
+
+if(which(nKolej==1)>k)
+  w4=NA
+else
+  w4=summary(m)$coefficients[which(nKolej==1)+1,4]
+
+if(which(nKolej==2)>k)
+  w5=NA
+else
+  w5=summary(m)$coefficients[which(nKolej==2)+1,4]
+
+v=c(anova(m)[2,2],w2,AIC(m),w4,w5,
+sum(summary(m)$coefficients[-(which(as.integer(names(L))>0 & as.integer(names(L))<6)+1),4]<0.05))
+v
+}
+
+N=matrix(0,6,8)
+colnames(N)=strnumerki
+rownames(N)=c('Resztowa SS','MSE','AIC','P-wartosc dla 1','P-wartosc dla 2','Falszywe odkrycia')
+for(i in 1:8)
+N[,i]=podpb(numerki[i],X)
+
+kable(N,format='markdown')
+
+bestmodelB=which.min(N[3,])
+```
+
+Kryterium AIC uznaje model `r bestmodelB` za najlepszy.
+
+#Podpunkt d
+
+```{r z4dalt}
+pix1a=matrix(0,1000,8)
+pix1b=matrix(0,1000,8)
+foa=matrix(0,1000,8)
+fob=matrix(0,1000,8)
+aica=matrix(0,1000,8)
+aicb=matrix(0,1000,8)
+
+for (i in 1:1000){
+  
+  X=matrix(rnorm(950000,0,.1),1000,950)
+  eps=rnorm(1000)
+  Y=X%*%beta+eps
+  
+  for (j in 1:8){
+
+    m=lm(Y~X[,1:numerki[j]])
+    
+    aica[i,j]=AIC(m)
+    pix1a[i,j]=summary(m)$coefficients[2,4]<0.05
+    foa[i,j]=sum(summary(m)$coefficients[-(1:5),4]<0.05)
+  }
+  
+  fullm=lm(Y~X)
+  K=abs(summary(fullm)$coefficients[,1])
+  names(K)=0:950
+  L=sort(K,decreasing=T)
+  nKolej=as.integer(names(L)[-which(as.integer(names(L))==0)])
+  Xb=matrix(0,1000,950)
+  betab=numeric(950)
+  for (p in 1:950){
+      Xb[,p]=X[,nKolej[p]]
+      betab[p]=beta[nKolej[p]]
+  }
+  
+  for (j in 1:8){
+
+    przestawm=lm(Y~Xb[,1:numerki[j]])
+    
+    aicb[i,j]=AIC(przestawm)
+    pix1b[i,j]=summary(przestawm)$coefficients[2,4]<0.05
+    fob[i,j]=sum(summary(przestawm)$coefficients  
+                 [-(which(as.integer(names(L))>0 & as.integer(names(L))<6)+1),4]<0.05)
+  }
+  
+}
+
+O=rbind(apply(pix1a,2,mean),
+apply(foa,2,mean),
+apply(pix1b,2,mean),
+apply(fob,2,mean))
+
+rownames(O)=c('Moc identyfikacji X1 w p-cie A','Falszywe odkrycia w p-cie A',  
+              'Moc identyfikacji X1 w p-cie B','Falszywe odkrycia w p-cie B')
+
+colnames(O)=c('I','II','III','IV','V','VI','VII','VIII')
+
+avgbestmodelA=mean(apply(aica,1,which.min))
+avgbestmodelB=mean(apply(aicb,1,which.min))
+
+kable(O,format='markdown')
+```
+
+Œredni numer modelu, który w podpunkcie A kryterium AIC uznaje model `r avgbestmodelA` za najlepszy.
+Œredni numer modelu, który w podpunkcie B kryterium AIC uznaje model `r avgbestmodelB` za najlepszy.
+
+##Zadanie 5
+
+
+```{r z5}
+t=read.table("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/CH06PR15.txt")
+n=dim(t)[1]
+p=dim(t)[2]
+
+m3=lm(t[[4]]~t[[1]]+t[[2]]+t[[3]])
+
+r2=summary(m3)$r.squared
+wsp=summary(m3)$coefficients[,1]
+fstat=summary(m3)$fstatistic
+```
+
+Równanie regresji ma postaæ Y=`r wsp[1]`+`r wsp[2]`X1 +`r wsp[3]`X2 +`r wsp[4]`X3. Wartoœæ $R^2$ wynosi `r r2`.
+H: $\beta_1=0 \wedge \beta_2=0 \wedge \beta_3=0$ K:$\exists _{i\in \{1,2,3\}} \ \beta_i\neq0$ Wartoœæ statystyki testowej wynosi `r fstat[1]`, przy H ta statystyka ma rozk³ad F-Snedecora z (1,`r n-p`) stopniami swobody, p-wartoœæ wynosi 3.04e-07, tote¿ odrzucamy H na rzecz K.
+
+##Zadanie 6
+
+```{r z6}
+
+P=matrix(c(summary(m3)$coefficients[2,1]-summary(m3)$coefficients[2,2]*qt(.975,n-p),
+  summary(m3)$coefficients[2,1]+summary(m3)$coefficients[2,2]*qt(.975,n-p),
+  summary(m3)$coefficients[3,1]-summary(m3)$coefficients[3,2]*qt(.975,n-p),
+  summary(m3)$coefficients[3,1]+summary(m3)$coefficients[3,2]*qt(.975,n-p),
+  summary(m3)$coefficients[4,1]-summary(m3)$coefficients[4,2]*qt(.975,n-p),
+  summary(m3)$coefficients[4,1]+summary(m3)$coefficients[4,2]*qt(.975,n-p)),2,3)
+
+P=rbind(P,summary(m3)$coefficients[2:4,3])
+P=rbind(P,summary(m3)$coefficients[2:4,4]>0.05)
+P=rbind(P,apply(P,2,function(v){v[1]<0 & v[2]>0}))
+
+rownames(P)=c("Lewy koniec PU","Prawy koniec PU",  
+              "Statystyka testowa","Przyjmujemy H?","Czy 0 jest w PU?")
+kable(P,format='markdown')
+```
+Dla i=1,2,3:
+H: $\beta_i=0$ K:$\beta_i\neq0$; Przy H statystyka testowa ma rozk³ad t-Studenta z `r n-p` stopniami swobody, odrzucamy H na rzecz K dla i=3. Dla i=1,2 brak podstaw do odrzucenia H na rzecz K.
+
+Zero jest w przedziale ufnoœci wtedy, i tylko wtedy, gdy brak podstaw do odrzucenia H na rzecz K.
+
+##zadanie 7
+
+```{r z7, fig.align='center', fig.height=3}
+
+plot(summary(m3)$residuals~t[[1]],xlab="",ylab="",  
+     main="Reszty w zale¿noœci od pierwszej zmiennej")
+plot(summary(m3)$residuals~t[[2]],xlab="",ylab="",  
+     main="Reszty w zale¿noœci od drugiej zmiennej")
+plot(summary(m3)$residuals~t[[3]],xlab="",ylab="",  
+     main="Reszty w zale¿noœci od trzeciej zmiennej")
+plot(summary(m3)$residuals~m3$fitted.values,xlab="",ylab="",  
+     main="Reszty w zale¿noœci od predykcji")
+
+```
+
+Na ¿adnym z czterech wykresów nie ma wyra¿nych obserwacji odstaj¹cych. Pierwsze cztery wykresy wskazuj¹ na brak zale¿noœci reszt od czegokolwiek, ale na czwartym wykresie ju¿ tak¹ zale¿noœæ dostrzegamy. Wartoœæ resztowa roœnie wraz z wartoœci¹ zmiennej wyjaœnianej (satysfakcji pacjenta).
+
+##Zadanie 8
+
+```{r z8, fig.align='center', fig.height=3.2}
+shapiropwart=shapiro.test(summary(m3)$residuals)$p.value
+qqnorm(summary(m3)$residuals)
+
+```
+
+P-wartoœæ dla testu Shapiro-Wilka wynosi `r shapiropwart`, jest wiêksza od 0,05 zatem mo¿emy przyj¹æ, ¿e reszty maj¹ rozk³ad normalny.
+
+##Zadanie 9
+
+```{r z9}
+s=read.table("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/csdata.dat")
+
+m4=lm(s[[2]]~s[[3]]+s[[4]]+s[[5]])
+m5=lm(s[[2]]~s[[6]]+s[[7]]+s[[3]]+s[[4]]+s[[5]])
+
+F1spos=(anova(m4)[4,2]-anova(m5)[6,2])/(anova(m4)[4,1]-anova(m5)[6,1])/anova(m5)[6,3]
+F2spos=anova(m4,m5)[2,5]
+pwart=anova(m4,m5)[2,6]
+ndf=anova(m4,m5)[2,3]
+ddf=anova(m4,m5)[2,1]
+```
+
+H: $\beta_4=0 \wedge \beta_5=0$ K:$\beta_4\neq0 \vee \beta_5\neq0$ Wartoœæ statystyki testowej wynosi `r F1spos` w pierwszym sposobie i `r F2spos` w drugim, przy H ta statystyka ma rozk³ad F-Snedecora z (`r ndf`,`r ddf`) stopniami swobody, p-wartoœæ wynosi `r pwart`, st¹d brak podstaw do odrzucenia H na rzecz K.
+
+##Zadanie 10
+
+```{r z10}
+sst1=anova(m5)[1:5,2]
+sst2=numeric(5)
+
+colnumbers=c(6,7,3,4,5)
+for (i in 1:5){
+  templm=lm(s[[2]]~as.matrix(s[colnumbers[-i]]))
+  sst2[i]=anova(templm,m5)[2,4]
+}
+Q=rbind(sst1,sst2)
+colnames(Q)=c('SATM','SATV','HSM','HSE','HSS')
+rownames(Q)=c("SS typu I", "SS typu II")
+kable(Q,format='markdown')
+```
+
+Dla ostatniej ze zmiennych wyjaœniaj¹cych wartoœci SS typu I i II s¹ równe poniewa¿ obie wartoœci to wartoœæ sumy kwadratów objaœnianej przez model bez ostatniej zmiennej.
+
+##Zadanie 11
+
+```{r z11}
+R=as.matrix(cbind(s[[6]],s[[7]],s[6]+s[7]))
+m6=lm(s[[2]]~R)
+print(summary(m6)$coefficients)
+```
+
+Dla zmiennej SAT wartoœci wynosz¹ NA, R rozpozna³, ¿e nowa zmienna jest liniowo zale¿na od dwóch pozosta³ych zmiennych przez co macierz X'X jest osobliwa.
+
+##Zadanie 12
+
+```{r z12,fig.align='center',fig.height=4,warning=F}
+colnumbers2=3:8
+m7=lm(s[[2]]~s[[3]]+s[[4]]+s[[5]]+s[[6]]+s[[7]]+s[[8]])
+plot(m7)
+```
+
+##Zadanie 13
+
+```{r z13}
+studentyzowane=rstudent(m7)
+sort(abs(studentyzowane),decreasing = T)[1:5]
+```
+
+Podejrzane s¹ obserwacje 104, 105 i 188, te same s¹ zazaczone na wykresach w funkcji plot(lm()). Jednak wartoœci parametrów dla tych obserwacji nie s¹ znacz¹c¹ wiêksze od wartoœci dla pozosta³ych obserwacji i mog¹ pozostaæ w modelu.
+
+##Zadanie 14
+
+```{r z14}
+dff=dffits(m7)
+sort(abs(dff),decreasing = T)[1:5]
+plot(dff,xlab="",ylab="",main="Wartoœci DFFITS dla obserwacji")
+```
+Zgodnie z oczekiwaniami na wykresie obserwujemy chmurkê punktów i brak zale¿noœci wartoœci DFFITS od czegokolwiek. Tym razem z podejrzanych obserwacji pozosta³a jedynie 188, wci¹¿ jednak odchylenie od pozosta³ych wartoœci nie jest bardzo znacz¹ce.
+
+##Zadanie 15
+
+```{r z15}
+VIF=vif(m7)
+tolerancja=1/VIF
+Z=rbind(VIF,tolerancja)
+kable(Z,format='markdown')
+```
+
+Wartoœci VIF dla ka¿dej z kolumn nie przekracza 2 (niepo¿¹dane s¹ wartoœci wy¿sze od 10). Tolerancja dla ka¿dej ze zmiennych objaœniaj¹cych jest wysoka i ma ma³y rozrzut, wszystkie wartoœci s¹ pomiêdzy 0,5 a 0,8.
+
+##Zadanie 16
+
+```{r z16,results='hide'}
+m8aic=step(m7,direction = 'both')
+m9bic=step(m7, direction = 'both', k=log(dim(s)[1]))
+```
+
+```{r z16ok}
+summary(m8aic)$coefficients[,1]
+summary(m9bic)$coefficients[,1]
+```
+
+Kryterium AIC za najlepszy model uznaje model objaœniaj¹cy przy u¿yciu trzeciej i pi¹tej kolumny, zaœ BIC do objaœniania proponuje u¿ywaæ tylko trzeciej kolumny.

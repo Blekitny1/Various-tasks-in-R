@@ -1,0 +1,224 @@
+---
+title: "Raport 1"
+author: "Aleksander Milach"
+date: "8 October 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ellipse)
+library(MASS)
+```
+
+##Zadanie 1
+
+```{r z1, echo=TRUE,  fig.align='center', fig.height=4}
+##Zad1
+X=rnorm(100,0,1)
+Y=rnorm(100,0,1)
+Z=t(cbind(X,Y))
+plot(t(Z),col='cyan3',pch=20,xlab="",ylab="")
+abline(h=0,col='green3')
+abline(v=0,col='green3')
+```
+
+##Zadanie 2
+
+#Podpunkt a
+
+Przekszta³cenie afiniczne przekszta³caj¹ce chmurê punktów z zadania 1 w chmurê z zadanego rozk³adu bêdzie dane wektorem $B=(4,2)^T$ oraz macierz¹ A tak¹, ¿e $AIA^T=\Sigma$. Tak¹ macierz¹ jest $A= \left( \begin{array}{cc}
+0.9 & \frac{\sqrt{19}}{10} \\
+1 & 0 \\
+\end{array} \right)$. Istotnie, $\left( \begin{array}{cc}
+0.9 & \frac{\sqrt{19}}{10} \\
+1 & 0 \\
+\end{array} \right) \left( \begin{array}{cc}
+0.9 & 1 \\
+\frac{\sqrt{19}}{10} & 0 \\
+\end{array} \right) = \left( \begin{array}{cc}
+1 & 0.9 \\
+0.9 & 1 \\
+\end{array} \right)$.
+
+```{r z2a, echo=TRUE, fig.align='center',fig.height=3.8}
+S=matrix(c(1,.9,.9,1),2,2)
+par(mfrow=c(1,4))
+
+M=matrix(c(.9,1,sqrt(19)/10,0),2,2)
+z2arecznie=M%*%Z+c(4,2)
+plot(z2arecznie[1,],z2arecznie[2,],col='cyan3',pch=19,xlab="Powy¿sza macierz",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+Achol=t(chol(S))
+z2achol=Achol%*%Z+c(4,2)
+plot(z2achol[1,],z2achol[2,],col='cyan3',pch=19,xlab="Choleski",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+P=eigen(S)$vectors
+D=diag(eigen(S)$values)
+lambda=sqrt(D)
+Adiag=P%*%lambda
+z2adiag=Adiag%*%Z+c(4,2)
+plot(z2adiag[1,],z2adiag[2,],col='cyan3',pch=19,xlab="Diagonalizacja",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+z2amvt=mvrnorm(100,c(4,2),S)
+plot(z2amvt,col='cyan3',pch=19,xlab="Wprost z rozkladu",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+plotcorr(cor(t(z2arecznie)))
+plotcorr(cor(t(z2achol)))
+plotcorr(cor(t(z2adiag)))
+plotcorr(cor(z2amvt))
+```
+Chmura z zadania 1 po ka¿dym w powy¿szych przekszta³ceñ wygl¹da niemal tak samo. Wykresy korelacji równie¿ s¹ takie same, a "jajko" w wykresie korelacji jest ukoœne w dó³, co potwierdza wartoœæ wspó³czynnika korelacji - 0.9.
+
+#Podpunkt b
+
+Przekszta³cenie afiniczne przekszta³caj¹ce chmurê punktów z zadania 1 w chmurê z zadanego rozk³adu bêdzie dane wektorem $B=(4,2)^T$ oraz macierz¹ A tak¹, ¿e $AIA^T=\Sigma$. Tak¹ macierz¹ jest $A= \left( \begin{array}{cc}
+-0.9 & \frac{\sqrt{19}}{10} \\
+1 & 0 \\
+\end{array} \right)$. Istotnie, $\left( \begin{array}{cc}
+-0.9 & \frac{\sqrt{19}}{10} \\
+1 & 0 \\
+\end{array} \right) \left( \begin{array}{cc}
+-0.9 & 1 \\
+\frac{\sqrt{19}}{10} & 0 \\
+\end{array} \right) = \left( \begin{array}{cc}
+1 & -0.9 \\
+-0.9 & 1 \\
+\end{array} \right)$.
+
+```{r z2b, echo=TRUE, fig.align='center',fig.height=3.8}
+S=matrix(c(1,-.9,-.9,1),2,2)
+par(mfrow=c(1,4))
+
+M=matrix(c(-.9,1,sqrt(19)/10,0),2,2)
+z2brecznie=M%*%Z+c(4,2)
+plot(z2brecznie[1,],z2brecznie[2,],col='cyan3',pch=19,xlab="Powy¿sza macierz",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+Achol=t(chol(S))
+z2bchol=Achol%*%Z+c(4,2)
+plot(z2bchol[1,],z2bchol[2,],col='cyan3',pch=19,xlab="Choleski",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+P=eigen(S)$vectors
+D=diag(eigen(S)$values)
+lambda=sqrt(D)
+Adiag=P%*%lambda
+z2bdiag=Adiag%*%Z+c(4,2)
+plot(z2bdiag[1,],z2bdiag[2,],col='cyan3',pch=19,xlab="Diagonalizacja",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+z2bmvt=mvrnorm(100,c(4,2),S)
+plot(z2bmvt,col='cyan3',pch=19,xlab="Wprost z rozkladu",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+plotcorr(cor(t(z2brecznie)))
+plotcorr(cor(t(z2bchol)))
+plotcorr(cor(t(z2bdiag)))
+plotcorr(cor(z2bmvt))
+```
+
+Chmura z zadania 1 po ka¿dym w powy¿szych przekszta³ceñ wygl¹da niemal tak samo. Wykresy korelacji równie¿ s¹ takie same, a "jajko" w wykresie korelacji jest ukoœne w górê, co potwierdza wartoœæ wspó³czynnika korelacji - -0.9.
+
+#Podpunkt c
+
+Przekszta³cenie afiniczne przekszta³caj¹ce chmurê punktów z zadania 1 w chmurê z zadanego rozk³adu bêdzie dane wektorem $B=(4,2)^T$ oraz macierz¹ A tak¹, ¿e $AIA^T=\Sigma$. Tak¹ macierz¹ jest $A= \left( \begin{array}{cc}
+3 & 0 \\
+0 & 1 \\
+\end{array} \right)$. Istotnie, $\left( \begin{array}{cc}
+3 & 0 \\
+0 & 1 \\
+\end{array} \right) \left( \begin{array}{cc}
+3 & 0 \\
+0 & 1 \\
+\end{array} \right) = \left( \begin{array}{cc}
+9 & 0 \\
+0 & 1 \\
+\end{array} \right)$.
+
+```{r z2c, echo=TRUE, fig.align='center',fig.height=3.8}
+S=matrix(c(9,0,0,1),2,2)
+par(mfrow=c(1,4))
+
+M=matrix(c(3,0,0,1),2,2)
+z2crecznie=M%*%Z+c(4,2)
+plot(z2crecznie[1,],z2crecznie[2,],col='cyan3',pch=19,xlab="Powy¿sza macierz",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+Achol=t(chol(S))
+z2cchol=Achol%*%Z+c(4,2)
+plot(z2cchol[1,],z2cchol[2,],col='cyan3',pch=19,xlab="Choleski",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+P=eigen(S)$vectors
+D=diag(eigen(S)$values)
+lambda=sqrt(D)
+Adiag=P%*%lambda
+z2cdiag=Adiag%*%Z+c(4,2)
+plot(z2cdiag[1,],z2cdiag[2,],col='cyan3',pch=19,xlab="Diagonalizacja",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+z2cmvt=mvrnorm(100,c(4,2),S)
+plot(z2cmvt,col='cyan3',pch=19,xlab="Wprost z rozkladu",ylab="")
+abline(h=2,col='green3')
+abline(v=4,col='green3')
+
+plotcorr(cor(t(z2crecznie)))
+plotcorr(cor(t(z2cchol)))
+plotcorr(cor(t(z2cdiag)))
+plotcorr(cor(z2cmvt))
+```
+
+Chmura z zadania 1 po ka¿dym w powy¿szych przekszta³ceñ wygl¹da niemal tak samo. Wykresy korelacji równie¿ s¹ takie same, a "jajko" w wykresie korelacji jest okr¹g³e, co potwierdza wartoœæ wspó³czynnika korelacji - 0.
+
+##Zadanie 3
+
+```{r z3, echo=T, fig.align='center', fig.height=5}
+par(mfrow=c(2,2))
+M=matrix(0.9,100,100)
+for(i in 1:100)
+{M[i,i]=1}
+
+R=matrix(c(rnorm(20000)),200,100)
+A=t(chol(M))
+
+D=apply(R,1,function(v) A%*%v)
+
+
+sr=apply(D,1,mean)
+hist(sr,ylab="",xlab="",main="Œrednie wspó³rzêdnych wektorów",col='cyan')
+abline(v=0,col='green3')
+barplot(sr,col=rainbow(100))
+va=apply(D,1,var)
+hist(va,ylab="", xlab="",main="Wariancje wspó³rzêdnych wektorów",col='cyan')
+abline(v=1,col='green3')
+barplot(va,col=rainbow(100))
+
+cov(D[1,],D[21,])
+cov(D[1,],D[21,])
+cov(D[1,],D[2,])
+cov(D[1,],D[2,])
+cov(D[1,],D[26,])
+cov(D[1,],D[26,])
+cov(D[1,],D[29,])
+
+par(mfrow=c(1,1))
+plotcorr(cor(t(D[1:25,]))) #biorê tylko macierz 25x25, ca³a macierz korelacji wygl¹da anlogicznie
+```
+
+Zgodnie z intuicj¹ œrednie wspó³rzêdnych wektorów rozk³adaj¹ siê normalnie wokó³ 0, a wariancje wokó³ 1. Kowariancje miêdzy poszczególnymi wektorami w ka¿dym prypadku wynosz¹ oko³o 0.9, tak samo jak w podanej w zadaniu macierzy kowariancji. Wszystkie "jajka", które nie s¹ na przek¹tnej s¹ ukoœne w górê, reprezentuj¹ wartoœæ wspó³czynnika korelacji jednakowego dla ich wszystkich - 0.9.

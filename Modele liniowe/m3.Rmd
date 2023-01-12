@@ -1,0 +1,199 @@
+---
+title: "Raport 3"
+author: "Aleksander Milach"
+date: "2 December 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Zadanie 1
+
+```{r z1, echo=TRUE}
+tc=qt(.975,10)
+Fc=qf(.95,1,10)
+tc^2-Fc
+```
+Ró¿nica miêdzy kwadratem tc, a fc jest bardzo bliska zeru. Zatem rzeczywiœcie $t_c^2=F_c$.
+
+##Zadanie 2
+
+A)dfM=dfE+1=1+20+1=22 obserwacje
+
+B)Wartoœæ estymatora $\sigma$ wynosi $\sqrt{MSE}=\sqrt{\frac{SSE}{dfE}}=\sqrt{\frac{400}{20}}=2\sqrt{5}$ 
+
+C)H: $\beta_1=0$ K:$\beta_1\neq0$ Wartoœæ statystyki testowej wynosi $F=\frac{\frac{SSM}{dfM}}{\frac{SSE}{dfE}}=\frac{\frac{100}{1}}{\frac{400}{20}}=5$, przy H ta statystyka ma rozk³ad F-Snedecora z (1,20) stopniami swobody, wartoœæ krytyczna qf(.95,1,20)=4.35 $F_c<F$, odrzucamy H na rzecz K.
+
+D)$R^2=\frac{SSM}{SSM+SSE}=\frac{100}{100+400}=0.2$ 
+
+E)Wartoœæ próbkowego wspó³czynnika korelacji miêdzy zmienn¹ wyjaœniaj¹c¹ a wyjaœnian¹ wynosi $r=\sqrt{R^2}=0.447$.
+
+##Zadanie 3
+
+```{r z3, echo=T, warning=FALSE,fig.align='center', fig.height=3.5}
+t=read.table(url("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/table1_6.TXT"))
+attach(t)
+z3ab=function(V2,V3) {
+v=c(summary(lm(V2~V3))$r.squared,
+summary(lm(V2~V3))$coefficients[,1],
+summary(lm(V2~V3))$coefficients[2,3:4],
+summary(lm(V2~V3))$sigma^2)
+names(v)=c('r2','b0','b1','t','p-wartosc','wariancja')
+v}
+z3ab(V2,V3)
+
+P100l=predict(lm(V2~V3),data.frame(V3=100),interval="prediction",level=.9)[2]
+P100p=predict(lm(V2~V3),data.frame(V3=100),interval="prediction",level=.9)[3]
+
+matplot(70:140,predict(lm(V2~V3),data.frame(V3=70:140),interval="prediction",level=.95),type="l",xlab="",ylab="",  
+        main="Pasmo predykcyjne dla GPA w zaleznosci od IQ") 
+points(V2~V3,col='cyan3',pch=19)
+```
+P-wartoœæ jest bardzo ma³a, zatem dla dowolnego rozs¹dnego poziomu istotnoœci odrzucamy hipotezê o braku korelacji miêdzy IQ a GPA.
+90% przedzia³ predykcyjny dla wartoœci GPA, gdy IQ wynosi 100 to [`r P100l`;`r P100p`].
+Poza pasmo predykcyjne wypadaj¹ 4 co wynosi oko³o 5% z 78 obserwacji.
+
+##Zadanie 4
+
+```{r z4, echo=T, fig.align='center', fig.height=3.5}
+z3ab(V2,V5)
+
+P60l=predict(lm(V2~V5),data.frame(V5=60),interval="prediction",level=.9)[2]
+P60p=predict(lm(V2~V5),data.frame(V5=60),interval="prediction",level=.9)[3]
+
+matplot(20:80,predict(lm(V2~V5),data.frame(V5=20:80),interval="prediction",level=.95),type="l",xlab="",ylab="",
+        main="Pasmo predykcyjne dla GPA w zaleznosci od samo-oceny")
+points(V2~V5,col='cyan3',pch=19)
+```
+
+P-wartoœæ jest bardzo ma³a, zatem dla dowolnego rozs¹dnego poziomu istotnoœci odrzucamy hipotezê o braku korelacji miêdzy samo-ocen¹ a GPA.
+90% przedzia³ predykcyjny dla wartoœci GPA, gdy samo-ocena wynosi 60 to [`r P60l`;`r P60p`].
+Poza pasmo predykcyjne wypadaj¹ 3 obserwacje co wynosi oko³o 5% z 78 obserwacji.
+
+GPA lepiej wyjaœnia IQ, œwiadczy o tym miêdzy innymi wiêksze $R^2$ i mniejsza wariancja.
+
+##Zadanie 5
+
+```{r z5, echo=T, fig.align='center', fig.height=3,warning=FALSE}
+s=read.table("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/CH01PR20.txt")
+detach(t)
+attach(s)
+
+r=summary(lm(V1~V2))$residuals
+sum(summary(lm(V1~V2))$residuals)
+
+z5bcd=function(r){
+plot(r~V2)
+plot(r)
+hist(r,freq=F,main="Reszty")
+qqnorm(r)
+}
+z5bcd(r)
+
+```
+
+Suma reszt jest, zgodnie z oczekiwaniami bardzo bliska 0.
+Z wykresów reszt wynika brak wyraŸnych zale¿noœci miêdzy resztami. Nie mamy podstaw do odrzucenia za³o¿enia, ¿e s¹ one niezale¿ne i z tego samego rozk³adu normalnego.  
+
+##Zadanie 6
+
+```{r z6, echo=T, fig.align='center', fig.height=3, warning=F}
+q=s
+q[1,1]=2000
+
+detach(s)
+attach(q)
+
+z3ab(V1,V2)
+
+r2=summary(lm(V1~V2))$residuals
+z5bcd(r2)
+```
+W porównaniu do poprzedniego zadania znacznie zmniejszy³o siê $R^2$ i wartoœæ statystyki testowej, zauwa¿alnie wzros³y p-wartoœæ i wariacja. Zmieni³ siê znak estymatora b1; nie mamy podstaw do odrzucania hipotezy o braku korelacji miêdzy zmiennymi. 
+
+Wartoœæ reszty roœnie wraz ze wzrostem wartoœci zmiennej objaœniaj¹cej. Histogram nie przypomnia kszta³tem gêstoœci rozk³adu normalnego.
+Na ka¿dym z wykresów widzimy obserwacjê odstaj¹c¹, która jest przyczyn¹ niepo¿¹danych wyników.
+
+##Zadanie 7
+
+```{r z7, echo=T, fig.align='center', fig.height=3, warning=F}
+u=read.table("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/CH03PR15.txt")
+
+detach(q)
+attach(u)
+n=length(V1)
+z3ab(V1,V2)
+```
+
+Za³ó¿my, ¿e $V1=\beta_0+\beta_1 V2+\epsilon_i$, $\epsilon_i \sim N(0,\sigma^2)$, $\epsilon_i$ s¹ niezale¿ne.
+Rozwa¿my hipotezê H:$\beta_1=0$ przeciw K:$\beta_1\neq0$. Przy H, statystyka testowa t ma rozk³ad Studenta z `r n-2` stopniami swobody. Wartoœæ statystyki jest du¿a i p-wartoœæ jest ma³a, zatem dla dowolnego rozs¹dnego poziomu istotnoœci odrzucamy H na rzecz K.
+Du¿a wartoœæ $R^2$, stosunkowo ma³a p-wartoœæ i wariancja (jak siê poni¿ej oka¿e), pozornie œwiadcz¹ o ³adnej linowej zale¿noœci miêdzy zmiennymi. 
+
+##Zadanie 8
+
+```{r z8, echo=T, warning=F, fig.align='center', fig.height=3.5}
+matplot(0:10,predict(lm(V1~V2),data.frame(V2=0:10),interval="prediction",level=.95),type="l",xlab="",ylab="")
+points(V1~V2,col='cyan3',pch=19)
+
+wspkor1=cor(V1,predict(lm(V1~V2)))
+```
+
+Pasmo predykcyjne zawiera wszystkie obserwacje, ale obserwacje nie uk³adaj¹ siê w prost¹, reszty malej¹ ze wzrostem V2.
+Wartoœæ wspó³czynnika korelacji miêdzy wyestymowanymi wartoœciami V1, a wartoœciami rzeczywistymi wynosi `r wspkor1`.
+
+##Zadanie 9
+
+```{r z9, echo=T, warning=F,fig.align='center',fig.height=3}
+library(MASS)
+boxcox(lm(V1~V2))
+```
+Maksimum funkcji pokazanej na wykresie jest bardzo blisko zera, zatem u¿yjemy $\lambda=0$.
+
+##Zadanie 10
+
+```{r z10, echo=T, warning=FALSE, fig.align='center', fig.height=3.5}
+logy=log(V1)
+
+z3ab(logy,V2)
+
+matplot(0:10,predict(lm(logy~V2),data.frame(V2=0:10),interval="prediction",level=.95),type="l",xlab="",ylab="")
+points(logy~V2,col='cyan3', pch=19)
+
+cor(logy,predict(lm(logy~V2)))
+```
+
+Za³ó¿my, ¿e $V1=\beta_0+\beta_1 V2+\epsilon_i$, $\epsilon_i \sim N(0,\sigma^2)$, $\epsilon_i$ s¹ niezale¿ne.
+Rozwa¿my hipotezê H:$\beta_1=0$ przeciw K:$\beta_1\neq0$. Przy H, statystyka testowa t ma rozk³ad Studenta z `r n-2` stopniami swobody. Wartoœæ statystyki jest du¿a i p-wartoœæ jest ma³a, zatem dla dowolnego rozs¹dnego poziomu istotnoœci odrzucamy H na rzecz K.
+
+Wartoœæ $R^2$ oraz wartoœæ wspó³czynnika korelacji miêdzy estymatorami a obserwacjami przekraczaj¹ 0.99, dane uk³adaj¹ siê w prost¹, pasmo predykcyjne zawiera wszystkie obserwacje.
+
+##Zadanie 11
+
+```{r z11, echo=T, fig.align='center', fig.height=3.5, warning=F}
+matplot(0:10,exp(predict(lm(logy~V2),data.frame(V2=0:10),interval="prediction",level=.95)),type="l",xlab="",ylab="",
+        main="Pasmo predykcyjne dla V1 w zaleznosci od V2")
+points(V1~V2,col='cyan3',pch=19)
+
+cor(V1,exp(predict(lm(logy~V2))))
+```
+
+Skoro po zlogarytmowaniu V1 otrzymaliœmy zale¿noœæ linow¹, to lepsze pasmo predykcyjne ni¿ w zadaniu 8 uzyskamy przekszta³caj¹c pasmo z zadania 10 przez funkcjê $e^x$. Wartoœæ wspó³czynnika korelacji przekracza 0.99, pasmo predykcyjne zawiera wszystkie obserwacje, ale co wa¿niejsze jest o wiele wê¿sze ni¿ w zadaniu 8.
+
+##Zadanie 12
+
+```{r z12, echo=T, fig.align='center', fig.height=3.5}
+t1=V2^(-1/2)
+z3ab(V1,t1)
+
+matplot(0.2:1.2,predict(lm(V1~t1),data.frame(t1=0.2:1.2),interval="prediction",level=.95),type="l",ylab="")
+points(V1~t1,col='cyan3',pch=19)
+cor(V1,predict(lm(V1~t1)))
+```
+
+Za³ó¿my, ¿e $V1=\beta_0+\beta_1 t1+\epsilon_i$, $\epsilon_i \sim N(0,\sigma^2)$, $\epsilon_i$ s¹ niezale¿ne.
+Rozwa¿my hipotezê H:$\beta_1=0$ przeciw K:$\beta_1\neq0$. Przy H, statystyka testowa t ma rozk³ad Studenta z `r n-2`  stopniami swobody. Wartoœæ statystyki jest du¿a i p-wartoœæ jest ma³a, zatem dla dowolnego rozs¹dnego poziomu istotnoœci odrzucamy H na rzecz K.
+
+
+Wartoœæ $R^2$ oraz wartoœæ wspó³czynnika korelacji miêdzy estymatorami a obserwacjami przekraczaj¹ 0.99, dane uk³adaj¹ siê w prost¹, pasmo predykcyjne zawiera wszystkie obserwacje.

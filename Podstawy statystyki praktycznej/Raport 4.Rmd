@@ -1,0 +1,38 @@
+---
+title: "Raport 4"
+author: "Aleksander Milach"
+date: "12 April 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+t=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/table1_6.TXT"))
+s=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/individuals.dat"))
+
+```
+##Zadanie 1
+
+```{r tab, echo=TRUE, fig.align='center',fig.height=4}
+
+qqnorm(t[[2]],col="cyan3",main="Wykres QQ sredniej ocen",xlab="",ylab="")
+qqnorm(t[[3]],col="deeppink3",main="Wykres QQ testu IQ",xlab="",ylab="")
+qqnorm(t[[5]],col="green",main="Wykres QQ testu samooceny",xlab="",ylab="")
+```
+Wykres QQ œredniej ocen jest wypuk³y, sk¹d twierdzimy ¿e histogram jest skoœny w lewo, zatem wiêkszoœæ dzieci uczy siê dobrze, ogólny wynik zani¿a ma³a grupa uczniów. W prawym górnym rogu wykresu kwantyle s¹ oddalone, czyli czêstoœæ obserwacji dla du¿ych wartoœci œredniej ocen szybko spada do zera.
+
+Podobne wnioski mo¿emy wyci¹gn¹æ z wykresu QQ dla testu IQ, z tym ¿e tutaj wypuk³oœæ wykresu jest mniejsza(choæ wci¹¿ zauwa¿alna); rozk³ad obserwacji jest bli¿szy normalnemu, ale analogicznie jak poprzednio wiêkszoœæ wyników jest nieco powy¿ej œredniej. W rogach wykresu tak jak wczeœniej wyraŸne przerwy miêdzy kropkami, czyli histogram na koñcach szybko maleje.
+
+W wykresie QQ dla testu samooceny znowu mamy do czynienia z wypuk³oœci¹ i pewnymi anomaliami na krañcach, sk¹d przypuszczamy ¿e histogram jest skoœny w lewo oraz skoki histogramu od zera na pewn¹ wysokoœæ przy koñcach rozpatrywanego przedzia³u. Tym razem wykres jest mniej wypuk³y od tego dla œredniej ocen, zaœ bardziej od odpowiedniego dla testu IQ.
+
+##Zadania 2
+
+```{r indi, echo=TRUE,fig.align='center',fig.height=4}
+qqnorm(s[[5]],main="Wykres QQ dochodu",col="green4",xlab="",ylab="")
+ld=log(s[[5]][s[[5]]>0])
+qqnorm(ld,main="Wykres QQ logarytmu dochodu", col="deeppink3",xlab="",ylab="")
+```
+
+Wykres QQ dochodów jest zdecydowanie wklês³y, zauwa¿alny wzrost dopiero w ostatnej æwiartce wykresu. Histogram ma zatem d³ugi ogon z prawej strony, znaczna wiêkszoœæ obserwacji jest przy pocz¹tku wykresu.
+
+Ciekawszy jesy wykres QQ logarytmu z dochodów. Osi¹ga on pewn¹ ma³¹ wysokoœæ tu¿ przy zerze, potem jest do pewnego momentu sta³y, aby "wybuchn¹æ", poczym stabilizuje on swój wzrost. Mo¿emy powiedzieæ zatem nieco wiêcej o czêstoœci dochodów. Jest pewna ma³a grupa zarabiaj¹cych bardzo ma³o, potem w pewnym minimum przyzwoitoœci mamy ogromny wzorst czêstoœci obserwacji, zaœ na nieco wy¿szym poziomie zarobków rozk³ad dochodu jest bliski normalnemu.

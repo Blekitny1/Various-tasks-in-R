@@ -1,0 +1,366 @@
+---
+title: "Raport 3"
+author: "Aleksander Milach"
+date: "30 maja 2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(glmnet)
+library(bigstep)
+library(gtools)
+library(glmSLOPE)
+library(mvtnorm)
+```
+
+```{r z1prep}
+
+n=1000
+p=250
+X=matrix(rnorm(n*p),n,p)
+c=9/sqrt(n)
+Beta=c(rep(c,5),rep(0,245))
+t=X%*%Beta
+probs=1/(1+exp(-t))
+Y=sapply(probs,function(x){rbinom(1,1,x)})
+
+Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+SEphat=function(phat){sum((phat-probs)^2)}
+
+zml2z1a=function(iletrue,Beta,X,Y)
+{
+prawda=c(0,rep(1,iletrue),rep(0,250-iletrue))
+m=glm(Y~X,family=binomial('logit'))
+glmistotne=as.numeric(which(summary(m)$coefficients[,4]<0.05)-1)
+Disc=sum(as.numeric(summary(m)$coefficients[,4]<0.05))
+Td=sum(as.numeric(summary(m)$coefficients[,4][2:(iletrue+1)]<0.05))
+Fd=Disc-Td
+FDP=Fd/(Td+Fd)
+
+t=X%*%Beta
+probs=1/(1+exp(-t))
+
+betahat=summary(m)$coefficients[2:251]
+
+Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+
+SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+
+est=X%*%summary(m)$coefficients[2:251]
+phat=1/(1+exp(-est))
+
+SEphat=function(phat){sum((phat-probs)^2)}
+
+v=list(glmistotne,Td,Fd,FDP,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat))
+names(v)=c('GLM istotne','Td','Fd','FDP','Bbetahat','SEbetahat','SEphat')
+return(v)
+}
+
+
+zad1b=function(b,iletrue){
+Tb=length(intersect(b,1:iletrue))
+Fb=length(b)-Tb
+FDPb=Fb/(Tb+Fb)
+Xsb=cbind(1,X[,b])
+mb=glm(Y~Xsb,family=binomial('logit'))
+betahat=summary(mb)$coefficients[1:(length(b)+1)]
+Bbetahat(betahat)
+SEbetahat(betahat)
+est=Xsb%*%betahat
+phat=1/(1+exp(-est))
+SEphat(phat)
+
+
+v=list(betahat,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat),Tb,Fb,FDPb)
+names(v)=c('est.beta','Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+return(v)
+}
+
+
+zml2z1b=function(X,Y,iletrue)
+{
+  Db=prepare_data(Y,X)
+  
+  bb=as.integer(fast_forward(Db,crit=bic)$model)
+  zad1b(bb,iletrue)
+  
+  bm=as.integer(fast_forward(Db,crit=mbic)$model)
+  zad1b(bm,iletrue)
+  
+  bm2=as.integer(fast_forward(Db,crit=mbic2)$model)
+  zad1b(bm2,iletrue)
+  l=list(zad1b(bb,iletrue),zad1b(bm,iletrue),zad1b(bm2,iletrue))
+  return(l)
+}
+
+
+zml2z4a=function(iletrue,Beta,X,Y)
+{
+  prawda=c(0,rep(1,iletrue),rep(0,25-iletrue))
+  m=glm(Y~X,family=binomial('logit'))
+  glmistotne=as.numeric(which(summary(m)$coefficients[,4]<0.05)-1)
+  Disc=sum(as.numeric(summary(m)$coefficients[,4]<0.05))
+  Td=sum(as.numeric(summary(m)$coefficients[,4][2:(iletrue+1)]<0.05))
+  Fd=Disc-Td
+  FDP=Fd/(Td+Fd)
+  
+  t=X%*%Beta
+  probs=1/(1+exp(-t))
+    
+  betahat=summary(m)$coefficients[2:26]
+  
+  Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+  
+  SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+  
+  est=X%*%summary(m)$coefficients[2:26]
+  phat=1/(1+exp(-est))
+  
+  SEphat=function(phat){sum((phat-probs)^2)}
+  
+  v=list(glmistotne,Td,Fd,FDP,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat))
+  names(v)=c('GLM istotne','Td','Fd','FDP','Bbetahat','SEbetahat','SEphat')
+  return(v)
+}
+
+```
+
+# Podpunkt a
+
+```{r ppa}
+Q=round(as.numeric(zml2z1a(5,Beta,X,Y)[2:7],2))
+names(Q)=c('Prawdziwe odkrycia','Fałszywe odkrycia','FDP','Bbetahat','SEbetahat','SEphat')
+
+zml2z1a(5,Beta,X,Y)[1]
+
+kable(t(Q),format='markdown')
+```
+
+# Podpunkt b
+
+```{r ppb,warning=F,message=F}
+W=cbind(round(as.numeric(zml2z1b(X,Y,5)[[1]][-1]),3),round(as.numeric(zml2z1b(X,Y,5)[[2]][-1]),3),round(as.numeric(zml2z1b(X,Y,5)[[3]][-1]),3))
+colnames(W)=c('BIC','mBIC','mBIC2')
+rownames(W)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+kable(t(W),format='markdown')
+```
+
+# Podpunkt c
+
+```{r ppc}
+which(coef(cv.glmnet(X,Y))!=0)
+
+E=round(as.numeric(zad1b(which(coef(cv.glmnet(X,Y))!=0),5)[2:7]),3)
+names(E)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+kable(t(E),format='markdown')
+```
+
+# Podpunkt d
+
+```{r ppd}
+
+lambda=sqrt(n)/2*qnorm(1-0.1*(1:250)/2/p)
+Yslope=2*Y-1
+slopecoef=solve_slope(X,Yslope,lambda,model='logistic')$w
+nzslopecoef=which(slopecoef!=0)
+
+zad1b(nzslopecoef,5)[1]
+
+R=round(as.numeric(zad1b(nzslopecoef,5)[2:7]),3)
+names(R)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+kable(t(R),format='markdown')
+```
+
+# Podpunkt e
+
+## Zadanie 2
+
+```{r z2pa, warning=F, message=F}
+
+Beta2=c(rep(9/sqrt(n),50),rep(0,200))
+t2=X%*%Beta2
+probs2=1/(1+exp(-t2))
+Y2=sapply(probs2,function(x){rbinom(1,1,x)})
+
+zml2z1a(50,Beta2,X,Y2)[1]
+
+U=round(as.numeric(zml2z1a(50,Beta2,X,Y2)[c(5:7,2:4)]),3)
+
+T=rbind(round(as.numeric(zml2z1b(X,Y2,50)[[1]][-1]),3),round(as.numeric(zml2z1b(X,Y2,50)[[2]][-1]),3),round(as.numeric(zml2z1b(X,Y2,50)[[3]][-1]),3))
+
+which(coef(cv.glmnet(X,Y2))!=0)
+
+I=round(as.numeric(zad1b(which(coef(cv.glmnet(X,Y2))!=0),50)[2:7]),3)
+
+Y2slope=2*Y2-1
+slopecoef2=solve_slope(X,Y2slope,lambda,model='logistic')$w
+nzslopecoef2=which(slopecoef2!=0)
+
+zad1b(nzslopecoef2,50)[1]
+
+O=round(as.numeric(zad1b(nzslopecoef2,50)[2:7]),3)
+
+P=rbind(U,T,I,O)
+colnames(P)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(P)=c('GLM','BIC','mBIC','mBIC2','LASSO','SLOPE')
+
+kable(P,format='markdown')
+```
+
+## Zadanie 3
+
+```{r z3a, message=F, warning=F}
+Sigm=matrix(.3,250,250)
+diag(Sigm)=1
+
+X3=rmvnorm(1000,sigma=Sigm)
+t31=X3%*%Beta
+probs31=1/(1+exp(-t31))
+Y31=sapply(probs31,function(x){rbinom(1,1,x)})
+
+t32=X3%*%Beta2
+probs32=1/(1+exp(-t32))
+Y32=sapply(probs32,function(x){rbinom(1,1,x)})
+
+A=rbind(round(as.numeric(zml2z1a(5,Beta,X3,Y31)[c(5:7,2:4)]),3), 
+round(as.numeric(zml2z1a(50,Beta2,X3,Y32)[c(5:7,2:4)]),3))
+
+S=rbind(round(as.numeric(zml2z1b(X3,Y31,5)[[1]][-1]),3),round(as.numeric(zml2z1b(X3,Y31,5)[[2]][-1]),3),round(as.numeric(zml2z1b(X3,Y31,5)[[3]][-1]),3))
+
+D=rbind(round(as.numeric(zml2z1b(X3,Y32,50)[[1]][-1]),3),round(as.numeric(zml2z1b(X3,Y32,50)[[2]][-1]),3),round(as.numeric(zml2z1b(X3,Y32,50)[[3]][-1]),3))
+
+F=rbind(round(as.numeric(zad1b(which(coef(cv.glmnet(X3,Y31))!=0),5)[2:7]),3),round(as.numeric(zad1b(which(coef(cv.glmnet(X3,Y32))!=0),50)[2:7]),3))
+
+Y31slope=2*Y31-1
+slopecoef31=solve_slope(X3,Y31slope,lambda,model='logistic')$w
+nzslopecoef31=which(slopecoef31!=0)
+
+Y32slope=2*Y32-1
+slopecoef32=solve_slope(X3,Y32slope,lambda,model='logistic')$w
+nzslopecoef32=which(slopecoef32!=0)
+
+G=rbind(round(as.numeric(zad1b(nzslopecoef31,5)[2:7]),3),round(as.numeric(zad1b(nzslopecoef32,50)[2:7]),3))
+###
+zml2z1a(5,Beta,X3,Y31)[1]
+zml2z1a(50,Beta2,X3,Y32)[1]
+which(coef(cv.glmnet(X3,Y31))!=0)
+which(coef(cv.glmnet(X3,Y32))!=0)
+zad1b(nzslopecoef31,5)[1]
+zad1b(nzslopecoef32,50)[1]
+
+H=rbind(A,S,D,F,G)
+colnames(H)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(H)=c('GLM a','GLM b','BIC a','BIC b','mBIC a','mBIC b','mBIC2 a','mBIC2 b','LASSO a','LASSO b','SLOPE a','SLOPE b')
+
+kable(H,format='markdown')
+
+```
+
+## Zadanie 4
+
+# Podpunkt a
+
+```{r z4a}
+n4=100# w kazdym chunku brakuje firtha ale zrobie go w zbiorczym chunku, na koniec
+p4=25
+X4=matrix(rnorm(2500),n4,p4)
+Beta4=c(rep(9/sqrt(n4),5),rep(0,p4-5))
+
+t4=X4%*%Beta4
+probs4=1/(1+exp(-t4))
+Y4=sapply(probs4,function(x){rbinom(1,1,x)})
+
+as.numeric(coef(glm(Y4~X4, family='binomial'))[-1])
+coef(cv.glmnet(X4,Y4))[-1]
+```
+
+# Podpunkt b
+
+```{r z4pb}
+
+J=rbind(round(as.numeric(zml2z4a(5,Beta4,X4,Y4)[c(5:7,2:4)]),3),
+round(as.numeric(zad1b(which(coef(cv.glmnet(X4,Y4))[-1]!=0),5)[2:7]),3))
+colnames(J)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(J)=c('GLM','cv.glmnet')
+
+kable(J,format='markdown')
+```
+
+# Podpunkt c
+
+
+
+```{r z4pc, warning=F, message=F}
+lambda4=sqrt(n4)/2*qnorm(1-0.1*(1:25)/2/p4)
+Y4slope=2*Y4-1
+```
+
+```{r z4cw, warning=F, message=F}
+slopecoef4=solve_slope(X4,Y4slope,lambda4,model='logistic')$w
+nzslopecoef4=which(slopecoef4!=0)
+```
+
+
+
+```{r z4rr, warning=F, message=F}
+#K=rbind(round(as.numeric(zml2z1b(X4,Y4,5)[[3]][2:7]),3),
+#round(as.numeric(zad1b(nzslopecoef4,5)[2:7]),3))
+#colnames(K)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+#rownames(K)=c('mBIC2','SLOPE')
+
+#kable(K,format='markdown')
+```
+
+## Zadanie 5
+
+# Podpunkt a
+
+
+```{r z5pa, warning=F, message=F}
+Sigm5=matrix(.3,25,25)
+diag(Sigm5)=1
+
+X5=rmvnorm(100,sigma=Sigm5)
+t5=X5%*%Beta4
+probs5=1/(1+exp(-t5))
+Y5=sapply(probs5,function(x){rbinom(1,1,x)})
+```
+
+```{r z5ee, warning=F, message=F}
+#round(as.numeric(coef(glm(Y5~X5, family=binomial('logit')))[-1]),3)
+#round(as.numeric(coef(cv.glmnet(X5,Y5))[-1]),3)
+```
+
+# Podpunkt b
+
+```{r z5pb, warning=F, message=F}
+#L=rbind(round(as.numeric(zml2z4a(5,Beta4,X5,Y5)[c(5:7,2:4)]),3),
+#round(as.numeric(zad1b(which(coef(cv.glmnet(X5,Y5))[-1]!=0),5)[2:7]),3))
+#colnames(L)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+#rownames(L)=c('GLM','cv.glmnet')
+
+#kable(L,format='markdown')
+```
+
+# Podpunkt c
+
+```{r z5pc, message=F, warning=F}
+#Y5slope=2*Y5-1
+#slopecoef5=solve_slope(X5,Y5slope,lambda4,model='logistic')$w
+#nzslopecoef5=which(slopecoef5!=0)
+
+#zml2z1b(X5,Y5,5)[[3]][1]
+#nzslopecoef5
+
+#Z=rbind(round(as.numeric(zml2z1b(X5,Y5,5)[[3]][2:7]),3),
+#round(as.numeric(zad1b(nzslopecoef5,5)[2:7]),3))
+#colnames(Z)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+#rownames(Z)=c('mBIC2','SLOPE')
+#kable(Z,format='markdown')
+```

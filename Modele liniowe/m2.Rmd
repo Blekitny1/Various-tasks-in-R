@@ -1,0 +1,53 @@
+---
+title: "Raport 2"
+author: "Aleksander Milach"
+date: "20 October 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+t=read.table("http://math.uni.wroc.pl/~mbogdan/Modele_Liniowe/Dane/CH01TA01.txt")
+attach(t)
+```
+
+##Zadanie 1
+
+```{r z1, echo=T, fig.align='center', fig.height=4}
+m1=lm(V1~V2)
+plot((V1~V2),pch=19,col="deeppink3",xlab="Ilosc urzadzen",ylab="Czas")
+```
+
+Zale¿noœæ na wykresie jest w przybli¿eniu liniowa. 
+
+##Zadanie 2
+
+#Podpunkt a
+
+Przybli¿one równanie zale¿noœci miêdzy iloœci¹ urz¹dzeñ a czasem ich naprawy wynosi y=`r m1$coefficients[1]`+`r m1$coefficients[2]`*x
+
+#Podpunkt b
+
+95% przedzia³ ufnoœci na $\beta_1$ to [`r confint(m1)[2,]`].
+
+#Podpunkt c
+
+H: $\beta_1=0$ K: $\beta_1\neq0$. Wartoœæ statystyki testowej dla `r summary(m1)$df[2]` stopni swobody wynosi T= `r summary(m1)$coefficients[2,3]`. P-wartoœæ wynosi $4.448*10^{-10}$ , zatem dla dowolnego rozs¹dnego poziomu istotnoœci H jest fa³szywa.
+
+#Zadanie 3
+
+Wartoœæ estymatora dla wartoœci oczekiwanej czasu naprawy 11 urz¹dzeñ wynosi `r predict(m1,data.frame(V2=11),interval="confidence")[1]` a 95% przedzia³ ufnoœci wynosi [`r predict(m1,data.frame(V2=11),interval="confidence")[2]`,`r predict(m1,data.frame(V2=11),interval="confidence")[3]`].
+
+#Zadanie 4
+
+Wartoœæ estymatora dla wartoœci czasu naprawy 11 urz¹dzeñ wynosi `r predict(m1,data.frame(V2=11),interval="prediction")[1]` a 95% przedzia³ prognozy wynosi [`r predict(m1,data.frame(V2=11),interval="prediction")[2]`,`r predict(m1,data.frame(V2=11),interval="prediction")[3]`].
+
+#Zadanie 5
+
+```{r z5, echo=T, fig.align='center', fig.height=4}
+plot((V1~V2),pch=19,col="deeppink3",xlab="Ilosc urzadzen",ylab="Czas",main="95% przedzia³y prognozy dla nowej obserwacji")
+Z=predict(m1,data.frame(V2=seq(90,600,by=5)),interval = "prediction")
+points(seq(90,600,by=5),sort(Z[,2]),type='l',col='cyan3')
+points(seq(90,600,by=5),sort(Z[,3]),type='l',col='cyan3')
+abline(m1$coefficients[1],m1$coefficients[2],col='green3')
+```

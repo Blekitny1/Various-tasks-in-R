@@ -1,0 +1,165 @@
+---
+title: "Raport 2"
+author: "Aleksander Milach"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(rstiefel)
+library(pracma)
+library(mvtnorm)
+library(glmnet)
+```
+
+```{r prep, cache=T}
+n=1000
+p=950
+X=randortho(1000)[,1:950]
+eps=rnorm(1000)
+numerkia=c(20,100,200)
+
+Beta21=c(rep(3,20),rep(0,950-20))
+Beta22=c(rep(3,100),rep(0,950-100))
+Beta23=c(rep(3,200),rep(0,950-200))
+
+Y21=X%*%Beta21+eps
+Y22=X%*%Beta22+eps
+Y23=X%*%Beta23+eps
+
+lambdaopt1=p*1/sum((Beta21)^2)
+lambdaopt2=p*1/sum((Beta22)^2)
+lambdaopt3=p*1/sum((Beta23)^2)
+
+zad22=function(Beta){
+lambdaopt=p*1/sum((Beta)^2)
+bias=-lambdaopt/(1+lambdaopt)*Beta
+war=1/(1+lambdaopt)^2
+mse=((lambdaopt^2)*(sum(Beta^2))+p)/(1+lambdaopt)^2
+v=c(lambdaopt,bias[1],war,mse)
+names(v)=c('Lambda opt.','Bias','Wariancja','MSE')
+return (v)
+}
+```
+
+# Podpunkt i
+
+```{r z1a, cache=T}
+
+lda=c(lambdaopt1=p*1/sum((Beta21)^2),
+lambdaopt2=p*1/sum((Beta22)^2),
+lambdaopt3=p*1/sum((Beta23)^2))
+
+A=cbind(numerkia,lda)
+colnames(A)=c('Ilość zmiennych znaczących','Optymalne lambda')
+rownames(A)=c('','','')
+
+kable(A,format='markdown')
+
+```
+
+# Podpunkt ii
+
+```{r z2,cache=T}
+bety=rbind(Beta21,Beta22,Beta23)
+B=apply(bety,1,zad22)
+colnames(B)=c('k=20','k=100','k=200')
+
+kable(t(B),format='markdown')
+```
+
+# Podpunkt iii
+
+```{r z3, cache=T}
+
+crt1=1/(1+lambdaopt1)*qnorm(1-0.1/2/p)
+crt2=1/(1+lambdaopt2)*qnorm(1-0.1/2/p)
+crt3=1/(1+lambdaopt3)*qnorm(1-0.1/2/p)
+
+crt=c(crt1=1/(1+lambdaopt1)*qnorm(1-0.1/2/p),
+crt2=1/(1+lambdaopt2)*qnorm(1-0.1/2/p),
+crt3=1/(1+lambdaopt3)*qnorm(1-0.1/2/p))
+
+pow=c(pow1=1-dnorm((crt1-3/(1+lambdaopt1))/(1+lambdaopt1))-dnorm((-crt1-3/(1+lambdaopt1))/(1+lambdaopt1)),
+pow2=1-dnorm((crt2-3/(1+lambdaopt2))/(1+lambdaopt2))-dnorm((-crt2-3/(1+lambdaopt2))/(1+lambdaopt2)),
+pow3=1-dnorm((crt3-3/(1+lambdaopt3))/(1+lambdaopt3))-dnorm((-crt3-3/(1+lambdaopt3))/(1+lambdaopt3)))
+
+C=cbind(crt,pow)
+colnames(C)=c('Wartości krytyczne','Teoretyczna moc')
+rownames(C)=c('k=20','k=100','k=200')
+
+kable(C,format='markdown')
+
+```
+
+# Podpunkt iiii
+
+```{r z4prep, cache=T}
+D=matrix(0,200,18)
+dova1=matrix(0,20,200)
+dova2=matrix(0,100,200)
+dova3=matrix(0,200,200)
+dovar1rr=matrix(0,20,200)
+dovar2rr=matrix(0,100,200)
+dovar3rr=matrix(0,200,200)
+for(i in 1:200)
+{
+  eps=rnorm(1000)
+  Y21=X%*%Beta21+eps
+  Y22=X%*%Beta22+eps
+  Y23=X%*%Beta23+eps
+  m1=lm(Y21~X)
+  m2=lm(Y22~X)
+  m3=lm(Y23~X)
+  bias1=mean(c(summary(m1)$coefficients[2:21,1]-3))
+  bias2=mean(c(summary(m2)$coefficients[2:101,1]-3))
+  bias3=mean(c(summary(m3)$coefficients[2:201,1]-3))#chyba ok pog
+  dova1[,i]=c(summary(m1)$coefficients[2:21,1])
+  dova2[,i]=c(summary(m2)$coefficients[2:101,1])
+  dova3[,i]=c(summary(m3)$coefficients[2:201,1])
+  powols1=mean(summary(lm(Y21~X))$coefficients[,4][2:21]<0.05/2/p)
+  powols2=mean(summary(lm(Y22~X))$coefficients[,4][2:101]<0.05/2/p)
+  powols3=mean(summary(lm(Y23~X))$coefficients[,4][2:201]<0.05/2/p)
+  mse1=sum((Beta21-summary(m1)$coefficients[-1,1])^2)
+  mse2=sum((Beta22-summary(m2)$coefficients[-1,1])^2)
+  mse3=sum((Beta23-summary(m3)$coefficients[-1,1])^2)
+  rr1=glmnet(X,Y21,alpha=0,lambda=lambdaopt1)
+  rr2=glmnet(X,Y22,alpha=0,lambda=lambdaopt2)
+  rr3=glmnet(X,Y23,alpha=0,lambda=lambdaopt3)
+  epow1=mean(abs(coef(rr1)[2:21])>crt1)
+  epow2=mean(abs(coef(rr2)[2:101])>crt2)
+  epow3=mean(abs(coef(rr3)[2:201])>crt3)
+  bias1rr=mean(c(coef(rr1)[2:21]-3))
+  bias2rr=mean(c(coef(rr2)[2:101]-3))
+  bias3rr=mean(c(coef(rr3)[2:201]-3))
+  dovar1rr[,i]=c(as.numeric(coef(rr1)[2:21]))
+  dovar2rr[,i]=c(as.numeric(coef(rr2)[2:101]))
+  dovar3rr[,i]=c(as.numeric(coef(rr3)[2:201]))
+  mserr1=sum((Beta21-coef(rr1)[-1])^2)
+  mserr2=sum((Beta22-coef(rr2)[-1])^2)
+  mserr3=sum((Beta23-coef(rr3)[-1])^2)
+  D[i,]=c(bias1,bias2,bias3,powols1,powols2,powols3,mse1,mse2,mse3,epow1,epow2,epow3,bias1rr,bias2rr,bias3rr,mserr1,mserr2,mserr3)
+}
+```
+```{r z4wynik, cache=T}
+F=matrix(apply(D,2,mean),3,6)
+colnames(F)=c('Bias OLS','Moc OLS','MSE OLS','Moc RR','Bias RR','MSE RR')
+rownames(F)=c('k=20','k=100','k=200')
+
+kable(F,format='markdown')
+
+varr=c(mean(apply(dova1,1,var)),
+mean(apply(dova2,1,var)),
+mean(apply(dova3,1,var)),
+mean(apply(dovar1rr,1,var)),
+mean(apply(dovar2rr,1,var)),
+mean(apply(dovar3rr,1,var)))
+
+G=matrix(varr,3,2)
+rownames(G)=c('k=20','k=100','k=200')
+colnames(G)=c('Wariancja OLS','Wariancja RR')
+kable(G,format='markdown')
+```
+
+Otrzymane wartości są bliskie wartościom teoretycznym obliczonym w punktcie ii. Dla k=20 wartości estymowane są najbliższe prawdziwym, najbardziej od wartości teoretycznych różnią się estymatory mocy testu kontrolującego FWER na poziomie 0.1.

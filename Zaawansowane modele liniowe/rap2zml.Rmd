@@ -1,0 +1,282 @@
+---
+title: "Raport 2"
+author: "Aleksander Milach"
+date: "25 kwietnia 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, cache = T)
+library(knitr)
+library(mvtnorm)
+```
+
+```{r z1prep, cache=TRUE}
+A<-structure(list(
+  numeracy = c(6.6, 7.1, 7.3, 7.5, 7.9, 7.9, 8, 8.2, 8.3, 8.3, 8.4, 8.4, 8.6, 8.7, 8.8, 8.8, 9.1, 9.1,
+               9.1, 9.3, 9.5, 9.8, 10.1, 10.5, 10.6, 10.6, 10.6, 10.7, 10.8, 11, 11.1, 11.2, 11.3, 12, 12.3, 12.4, 12.8,
+               12.8, 12.9, 13.4, 13.5, 13.6, 13.8, 14.2, 14.3, 14.5, 14.6, 15, 15.1, 15.7),
+  anxiety = c(13.8, 14.6, 17.4, 14.9, 13.4, 13.5, 13.8, 16.6, 13.5, 15.7, 13.6, 14, 16.1, 10.5, 16.9, 17.4, 13.9, 15.8,
+              16.4, 14.7, 15, 13.3, 10.9, 12.4, 12.9, 16.6, 16.9, 15.4, 13.1, 17.3, 13.1, 14, 17.7, 10.6, 14.7, 10.1, 
+              11.6, 14.2, 12.1, 13.9, 11.4, 15.1, 13, 11.3, 11.4, 10.4, 14.4, 11, 14, 13.4),
+  success = c(0L, 0L, 0L, 1L, 0L, 1L, 0L, 0L, 1L, 0L, 1L, 1L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 1L, 0L, 0L, 1L, 1L, 1L, 0L, 0L,
+              0L, 1L, 0L, 1L, 0L, 0L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L)),
+  .Names = c('numeracy','anxiety', 'success'), row.names = c(NA, -50L), class = 'data.frame')
+
+
+M1=glm(success~numeracy+anxiety,data = A,family=binomial('logit'), control=list(epsilon=1e-03,maxit=25,trace=F))
+
+w=predict(M1,type='response')
+S1=matrix(0,50,50)
+diag(S1)=w*(1-w)
+X1=cbind(1,A[,1:2])
+W=solve(t(X1)%*%as.matrix(S1)%*%as.matrix(X1))
+```
+
+## Zadanie 1
+
+# Podpunkt a
+
+```{r z1a}
+W
+(summary(M1)$coefficients[2,2])
+(summary(M1)$coefficients[3,2])
+
+W[2,2]-(summary(M1)$coefficients[2,2])^2
+W[3,3]-(summary(M1)$coefficients[3,2])^2
+
+```
+
+Zgodnie z teorią, wartości na przekątnej macierzy informacji Fishera (czyli estymator macierzy kowariancji estymatorów), różnią się bardzo niewiele od kwadratów wartości odchyleń standerdowych dla zmiennych anxiety i numeracy, obliczonych przez funkcję glm.
+
+# Podpunkt b
+
+```{r z1b, echo=T}
+1-pchisq(M1$null.deviance-deviance(M1),2)
+```
+
+Wymienioną w zadaniu hipotezę testujemy sprawdzając zgodność różnicy null deviance i residual deviance z rozkładem chi-kwadrat z dwoma stopniami swobody. Obliczona wartość jest dużo mniejsza od 0,05, toteż odrzucamy hipotezę o braku wpływu którejkolwiek ze zmiennych na zmienną odpowiedzi.
+
+# Podpunkt c
+
+```{r zad1c, echo=T}
+1-pchisq(M1$deviance,df.residual(M1))
+```
+
+Wymienioną w zadaniu hipotezę testujemy sprawdzając zgodność wartości residual deviance z rozkładem chi-kwadrat z n-p stopniami swobody. Obliczona wartość jest dużo większa od 0,05, toteż przyjmujemy hipotezę o rozkładzie danych związanym z modelem.
+
+# Podpunkt d
+
+```{r zad1d, cache=T}
+
+eps=c(1e-01,1e-02,1e-03,1e-06,1e-08)
+
+N=matrix(0,4,4)
+
+zad1d=function(i){
+  m=glm(success~numeracy+anxiety,data = A,family=binomial('logit'), control=list(epsilon=eps[i],maxit=25,trace=F))
+  v=c(summary(m)$iter,m$coefficients[1],m$coefficients[2],m$coefficients[3])
+  v
+}
+
+N=sapply(1:5,zad1d)
+rownames(N)=c('Ilosc iteracji','Est. intercept','Est. numeracy','Est. anxiety')
+colnames(N)=c('10^-1','10^-2','10^-3','10^-06','10^-8')
+
+kable(N,format='markdown', digits=4)
+
+```
+
+glm.control(epsilon = 1e-8, maxit = 25, trace = FALSE)
+epsilon	- positive convergence tolerance eps; the iterations converge when |dev - dev_{old}|/(|dev| + 0.1) < eps.
+
+Parametr epsilon ustala warunek, przy którym funkcja glm przestaje przeprowadzać interacje Fishera. Wartość domyślna to $\epsilon = 10^{-8}$.
+
+Od wartości epsilona równej $\epsilon = 10^{-3}$ wartości estymatorów obliczone przez funkcję glm różnią się na trzecim miejscu po przecinku. Pierwsze dwie wartości epsilona dają już zauważalne różnice w wartościach estymatorów, ponieważ przeprowadzają za mało interacji Fishera. Skoro jednak wartość $\epsilon = 10^{-3}$ wystarcza do bardzo dobrej estymacji parametrów, to możemy uważać, że aż tak mała wartość domyślna jest nie potrzebna.
+
+## Zadanie 2
+
+```{r z2prep}
+
+n=400
+p=3
+beta=c(3,3,3)
+X=matrix(rnorm(n*p,0,sqrt(1/n)),n,p)
+
+zad3=function(n,p,X,beta)
+{
+t=X%*%beta
+probs=1/(1+exp(-t))
+
+S=matrix(0,n,n)
+diag(S)=probs*(1-probs)
+I=t(X)%*%S%*%X
+estkowar=solve(I)
+fishbeta=I%*%beta
+
+O=sapply(1:500,function(i){
+  Y=sapply(probs,function(x){rbinom(1,1,x)})
+  m=glm(Y~X,family = binomial('logit'))
+  
+  v=c(deviance(m),m$coefficients[1],m$coefficients[2],m$coefficients[3],m$coefficients[4])
+})
+hist(O[1,],freq=F)
+lines(seq(500,570,0.01),dchisq(seq(500,570,0.01),n-p),type='l')
+
+hist(O[3,],freq=F,ylim=c(0,0.2), main='Estymator beta1 vs N(3,estkowar(1,1))')
+lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[1,1])),type='l')
+
+hist(O[4,],freq=F,ylim=c(0,0.2), main='Estymator beta2 vs N(3,estkowar(2,2))')
+lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[2,2])),type='l')
+
+hist(O[5,],freq=F,ylim=c(0,0.2), main='Estymator beta3 vs N(3,estkowar(3,3))')
+lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[3,3])),type='l')
+
+ob1=mean(O[3,])-3
+ob2=mean(O[4,])-3
+ob3=mean(O[5,])-3
+
+akowar=var(t(O))[3:5,3:5]
+
+roznica=max(abs(estkowar-akowar))
+
+v=list(fishbeta,estkowar,ob1,ob2,ob3,akowar,roznica)
+names(v)=c('Fish(beta)','Est. cov','Obc. 1','Obc. 2','Obc. 3','As. cov','Roznica')
+return(v)
+}
+```
+
+```{r z2a,fig.align='center', fig.height=4}
+n=400
+p=3
+beta=c(3,3,3)
+X=matrix(rnorm(n*p,0,sqrt(1/n)),n,p)
+
+par(mfrow=c(2,2))
+zad3(n,p,X,beta)
+
+```
+
+## Zadanie 3
+
+```{r z3,fig.align='center', fig.height=4}
+
+n=100
+X=matrix(rnorm(n*p,0,sqrt(1/n)),n,p)
+par(mfrow=c(2,2))
+zad3(n,p,X,beta)
+```
+
+## Zadanie 4
+
+# n=400
+
+```{r z4a,fig.align='center', fig.height=4}
+n=400
+S=matrix(0.3,3,3)
+diag(S)=1
+X=rmvnorm(n,sigma=S/n)
+par(mfrow=c(2,2))
+zad3(n,p,X,beta)
+```
+
+# n=100
+
+```{r z4b,fig.align='center', fig.height=4}
+
+n=100
+X=rmvnorm(n,sigma=S/n)
+par(mfrow=c(2,2))
+zad3(n,p,X,beta)
+
+```
+
+## Zadanie 5
+
+```{r z5prep,fig.align='center', fig.height=4,cache=F}
+
+
+zad5=function(n,p,X,beta)
+{
+  t=X%*%beta
+  probs=1/(1+exp(-t))
+  
+  S=matrix(0,n,n)
+  diag(S)=probs*(1-probs)
+  I=t(X)%*%S%*%X
+  estkowar=solve(I)
+  fishbeta=I%*%beta
+  
+  O=sapply(1:500,function(i){
+    Y=sapply(probs,function(x){rbinom(1,1,x)})
+    m=glm(Y~X,family = binomial('logit'))
+    
+    v=c(deviance(m),m$coefficients[1],m$coefficients[2],m$coefficients[3],m$coefficients[4],
+        m$coefficients[5],m$coefficients[6],m$coefficients[7],m$coefficients[8],m$coefficients[9],m$coefficients[10],
+        m$coefficients[11],m$coefficients[12],m$coefficients[13],m$coefficients[14],m$coefficients[15],m$coefficients[16],
+        m$coefficients[17],m$coefficients[18],m$coefficients[19],m$coefficients[20],m$coefficients[21])
+  })
+  hist(O[1,],freq=F,main='RSS vs chi2(n-p)')
+  lines(seq(70,130,0.01),dchisq(seq(70,130,0.01),n-p),type='l')
+  # psuje się bo n>>p
+  
+  hist(O[3,],freq=F,ylim=c(0,0.2), main='Estymator beta1 vs N(3,estkowar(1,1))')
+  lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[1,1])),type='l')
+  
+  hist(O[4,],freq=F,ylim=c(0,0.2),main='Estymator beta2 vs N(3,estkowar(2,2))')
+  lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[2,2])),type='l')
+  
+  hist(O[5,],freq=F,ylim=c(0,0.2),main='Estymator beta3 vs N(3,estkowar(3,3))')
+  lines(seq(-4,12,0.01),dnorm(seq(-4,12,0.01),3,sqrt(estkowar[3,3])),type='l')
+  
+  ob1=mean(O[3,])-3
+  ob2=mean(O[4,])-3
+  ob3=mean(O[5,])-3
+  
+  akowar=var(t(O))[3:22,3:22]
+  
+  roznica=max(abs(estkowar-akowar))
+  
+  v=list(fishbeta,estkowar[1:5,1:5],ob1,ob2,ob3,akowar[1:5,1:5],roznica)
+  names(v)=c('Fish(beta)','Est. cov','Obc. 1','Obc. 2','Obc. 3','As. cov','Roznica')
+  return(v)
+}
+
+
+```
+
+# n=400
+
+```{r z5a,fig.align='center', fig.height=4, cache=F}
+
+n=400
+p=20
+beta=numeric(20)
+beta[1:3]=3
+X=matrix(rnorm(n*p,0,sqrt(1/n)),n,p)
+par(mfrow=c(2,2))
+zad5(n,p,X,beta)
+
+```
+
+# n=100
+
+```{r z5b,fig.align='center', fig.height=4, cache=F}
+
+n=100
+p=20
+beta=numeric(20)
+beta[1:3]=3
+X=matrix(rnorm(n*p,0,sqrt(1/n)),n,p)
+par(mfrow=c(2,2))
+zad5(n,p,X,beta)
+
+```
+
+W zadaniach 2-5 przeprowadzaliśmy ten sam eksperyment ze zmienionymi danymi. W zadaniach 2-4 wyniki są podobne i dobre. Mamy bardzo dobre przybliżenia histogramów wartości parametrów rozkładami normalnymi, małe wyestymowane obciążenia (co najwyżej 0,4), małe różnice między asymptotyczną a estymowaną macierzą kowariancji estymatorów (co najwyżej 0,9).
+
+Wyniki pogarszają się w zadaniu 5, gdzie wprowadzamy 17 nieistotnych zmiennych, bardziej w przypadku, gdy mamy tylko 100 obserwacji. Obciążenia wynoszą około 1, przez co zauważalne jest gorsze przybliżenie rozkładem normalnym ze średnią 3. Również wariancja jest większa niż wyestymowaliśmy. Różnica między asymptotyczną a estymowaną macierzą kowariancji estymatorów wynosi już prawie 7.
+
+Na żadnym z wykresów RSS nie widać rozkładu asymptotycznego - $\chi ^2 (n-p)$. Wynika to z tego, że jest on asymptotyczny dla p zbiegającego do n, a nasze wartości tego parametru, czyli 3 i 20 są dużo mniejsze od wartości n - 100 i 400. Na histogramie RSS dla p=20 i n=100 widać gęstości asymptotycznego rozkładu, jednak jak wcześniej wspomniałem, nie pasuje on do histogramu.
+
+Macierze kowariancji estymatorów, asymptotyczna i estymowana mają rozmiar 20 na 20, przedstawianie ich całych w raporcie jest niepotrzebne, stąd w zadaniu 5 umieściłem tylko jej lewą górną część rozmiaru 5 na 5.

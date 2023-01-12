@@ -1,0 +1,421 @@
+---
+title: "Raport 3 cz.2"
+author: "Aleksander Milach"
+date: "5 June 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(knitr)
+library(glmnet)
+library(bigstep)
+library(gtools)
+library(glmSLOPE)
+library(mvtnorm)
+library(logistf)
+```
+
+Raport ma dwie części i jest rozdzielony w zadaniu 3. Na końcu pierwszej częsci jest wynik pojedyńsczego eksperymentu z zadania 3. Poniżej są uśrednione wyniki 20 eksperymentów z zadania 3. Z niewiadomych mi powodów po przekroczeniu pewnej ilości linijek Markdown uniemożliwiał efektywne obliczanie kolejnych (prawidłowo liczących w R) chunków i wyrzucał pewien niezwiązany z kodem błąd; przerzucenie tego samego kodu do nowego pliku rozwiązywało problem (przyp. aut.).
+
+## Zadanie 3 cd.
+
+```{r z1prep, cache=T}
+
+n=1000
+p=250
+X=matrix(rnorm(n*p),n,p)
+c=9/sqrt(n)
+Beta=c(rep(c,5),rep(0,245))
+t=X%*%Beta
+probs=1/(1+exp(-t))
+Y=sapply(probs,function(x){rbinom(1,1,x)})
+
+Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+SEphat=function(phat){sum((phat-probs)^2)}
+
+zml2z1a=function(iletrue,Beta,X,Y)
+{
+prawda=c(0,rep(1,iletrue),rep(0,250-iletrue))
+m=glm(Y~X,family=binomial('logit'))
+glmistotne=as.numeric(which(summary(m)$coefficients[,4]<0.05)-1)
+Disc=sum(as.numeric(summary(m)$coefficients[,4]<0.05))
+Td=sum(as.numeric(summary(m)$coefficients[,4][2:(iletrue+1)]<0.05))
+Fd=Disc-Td
+FDP=Fd/(Td+Fd)
+
+t=X%*%Beta
+probs=1/(1+exp(-t))
+
+betahat=summary(m)$coefficients[2:251]
+
+Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+
+SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+
+est=X%*%summary(m)$coefficients[2:251]
+phat=1/(1+exp(-est))
+
+SEphat=function(phat){sum((phat-probs)^2)}
+
+v=list(glmistotne,Td,Fd,FDP,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat))
+names(v)=c('GLM istotne','Td','Fd','FDP','Bbetahat','SEbetahat','SEphat')
+return(v)
+}
+
+
+zad1b=function(b,iletrue){
+Tb=length(intersect(b,1:iletrue))
+Fb=length(b)-Tb
+FDPb=Fb/(Tb+Fb)
+Xsb=cbind(1,X[,b])
+mb=glm(Y~Xsb,family=binomial('logit'))
+betahat=summary(mb)$coefficients[1:(length(b)+1)]
+Bbetahat(betahat)
+SEbetahat(betahat)
+est=Xsb%*%betahat
+phat=1/(1+exp(-est))
+SEphat(phat)
+
+
+v=list(betahat,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat),Tb,Fb,FDPb)
+names(v)=c('est.beta','Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+return(v)
+}
+
+
+zml2z1b=function(X,Y,iletrue)
+{
+  Db=prepare_data(Y,X)
+  
+  bb=as.integer(fast_forward(Db,crit=bic)$model)
+  zad1b(bb,iletrue)
+  
+  bm=as.integer(fast_forward(Db,crit=mbic)$model)
+  zad1b(bm,iletrue)
+  
+  bm2=as.integer(fast_forward(Db,crit=mbic2)$model)
+  zad1b(bm2,iletrue)
+  l=list(zad1b(bb,iletrue),zad1b(bm,iletrue),zad1b(bm2,iletrue))
+  return(l)
+}
+
+
+zml2z4a=function(iletrue,Beta,X,Y)
+{
+  prawda=c(0,rep(1,iletrue),rep(0,25-iletrue))
+  m=glm(Y~X,family=binomial('logit'))
+  glmistotne=as.numeric(which(summary(m)$coefficients[,4]<0.05)-1)
+  Disc=sum(as.numeric(summary(m)$coefficients[,4]<0.05))
+  Td=sum(as.numeric(summary(m)$coefficients[,4][2:(iletrue+1)]<0.05))
+  Fd=Disc-Td
+  FDP=Fd/(Td+Fd)
+  
+  t=X%*%Beta
+  probs=1/(1+exp(-t))
+    
+  betahat=summary(m)$coefficients[2:26]
+  
+  Bbetahat=function(betahat){1/p*sum(betahat-Beta[1:length(betahat)])}
+  
+  SEbetahat=function(betahat){sum((betahat-Beta[1:length(betahat)])^2)}
+  
+  est=X%*%summary(m)$coefficients[2:26]
+  phat=1/(1+exp(-est))
+  
+  SEphat=function(phat){sum((phat-probs)^2)}
+  
+  v=list(glmistotne,Td,Fd,FDP,Bbetahat(betahat),SEbetahat(betahat),SEphat(phat))
+  names(v)=c('GLM istotne','Td','Fd','FDP','Bbetahat','SEbetahat','SEphat')
+  return(v)
+}
+
+```
+
+
+```{r z3e, message=F, warning=F, cache=T}
+M3=array(0,dim=c(6,6,20))
+
+for(i in 1:20)
+{
+  set.seed(i)
+  n=1000
+  p=250
+  Sigm=matrix(.3,250,250)
+  diag(Sigm)=1
+  X3=rmvnorm(1000,sigma=Sigm)
+  t31=X3%*%Beta
+  probs31=1/(1+exp(-t31))
+  Y31=sapply(probs31,function(x){rbinom(1,1,x)})
+  Y31slope=2*Y31-1
+  lambda=sqrt(n)/2*qnorm(1-0.1*(1:250)/2/p)
+  M3[,1,i]=as.numeric(zml2z1a(5,Beta,X3,Y31)[c(5:7,2:4)])#<- powtorz 20 razy forem nawet, 
+  M3[,2,i]=as.numeric((zml2z1b(X3,Y31,5))[[1]][2:7])
+  M3[,3,i]=as.numeric((zml2z1b(X3,Y31,5))[[2]][2:7])
+  M3[,4,i]=as.numeric((zml2z1b(X3,Y31,5))[[3]][2:7])
+  M3[,5,i]=as.numeric(zad1b(which(coef(cv.glmnet(X3,Y31))[-1]!=0),5)[2:7])
+  M3[,6,i]=as.numeric(zad1b(which(solve_slope(X3,Y31slope,lambda,model='logistic')$w!=0),5)[2:7])
+  
+}
+
+
+Z3EM=matrix(0,6,6)
+for(i in 1:6){for (j in 1:6){Z3EM[i,j]=mean(M3[i,j,1:20])}}
+
+colnames(Z3EM)=c('GLM','BIC','mBIC','mBIC2','LASSO','SLOPE')
+rownames(Z3EM)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+
+kable(t(Z3EM), format='markdown')
+```
+
+Ze względy na dodanie korelacji otrzymujemy gorsze wyniki. Funkcja glm wciąż ma największe błędy estymacji. glm i SLOPE dodają bardzo dużo fałszywych odkryć, LASSO trochę mniej. Najlepiej poradziły sobie kryteria informacyjne: mBIC miał zdecydowanie najmniejsze FDP kosztem zmniejszonej wykrywalności sygnału, a mBIC2 najczęściej znajdywał sygnał przy rozsądnym FDP.
+
+```{r z3e2, message=F, warning=F, cache=T}
+M32=array(0,dim=c(6,6,20))
+
+for(i in 1:20)
+{
+  set.seed(i)
+  n=1000
+  p=250
+  Sigm=matrix(.3,250,250)
+  diag(Sigm)=1
+  X3=rmvnorm(1000,sigma=Sigm)
+  Beta2=c(rep(9/sqrt(n),50),rep(0,200))
+  t32=X3%*%Beta2
+  probs32=1/(1+exp(-t32))
+  Y32=sapply(probs32,function(x){rbinom(1,1,x)})
+  Y32slope=2*Y32-1
+  lambda=sqrt(n)/2*qnorm(1-0.1*(1:250)/2/p)
+  M32[,1,i]=as.numeric(zml2z1a(5,Beta2,X3,Y32)[c(5:7,2:4)])#<- powtorz 20 razy forem nawet, 
+  M32[,2,i]=as.numeric((zml2z1b(X3,Y32,50))[[1]][2:7])
+  M32[,3,i]=as.numeric((zml2z1b(X3,Y32,50))[[2]][2:7])
+  M32[,4,i]=as.numeric((zml2z1b(X3,Y32,50))[[3]][2:7])
+  M32[,5,i]=as.numeric(zad1b(which(coef(cv.glmnet(X3,Y32))[-1]!=0),50)[2:7])
+  M32[,6,i]=as.numeric(zad1b(which(solve_slope(X3,Y32slope,lambda,model='logistic')$w!=0),50)[2:7])
+  
+}
+
+
+Z32EM=matrix(0,6,6)
+for(i in 1:6){for (j in 1:6){Z32EM[i,j]=mean(M32[i,j,1:20])}}
+
+colnames(Z32EM)=c('GLM','BIC','mBIC','mBIC2','LASSO','SLOPE')
+rownames(Z32EM)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+
+kable(t(Z32EM), format='markdown')
+```
+
+
+
+W momencie w którym dodajemy korelację do modelu z 50-ma istotnymi zmiennymi sygnał jest jeszcze trudniejszy do odtworzenia. Funkcja glm ma astronomiczne wartości błędów i nie znajduje żadnych odkryć. Najwięcej prawdziwych odkryć wyłapuje SLOPE kosztem błędów estymacji i FDP. LASSO znajduje mniej odkryć, ale ma mniejsze błędy i mniejsze FDP od SLOPE. Najlepiej znowu sprawują się kryteria informacyjne, nieznacznie na plus wyróżnia się BIC za najwięcej prawdziwych odkryć przy małym FDP.
+
+## Zadanie 4
+
+# Podpunkt a
+
+```{r z4a, cache=T}
+n4=100
+p4=25
+X4=matrix(rnorm(2500),n4,p4)
+Beta4=c(rep(9/sqrt(n4),5),rep(0,p4-5))
+
+t4=X4%*%Beta4
+probs4=1/(1+exp(-t4))
+Y4=sapply(probs4,function(x){rbinom(1,1,x)})
+
+as.numeric(coef(glm(Y4~X4, family=binomial('logit')))[-1])
+print('cv.glmnet')
+coef(cv.glmnet(X4,Y4))[-1]
+
+print('Regresja Firtha')
+as.numeric(logistf(Y4~X4)$coef[-1])
+lf=logistf(Y4~X4)
+ci=confint(lf)
+bf=as.numeric(which(ci[-1,1]>0&ci[-1,2]>0))
+```
+
+# Podpunkt b
+
+```{r z4ff, warning=F, message=F, cache=T}
+
+
+J=rbind(round(as.numeric(zml2z4a(5,Beta4,X4,Y4)[c(5:7,2:4)]),3),
+round(as.numeric(zad1b(which(coef(cv.glmnet(X4,Y4))[-1]!=0),5)[2:7]),3),
+round(as.numeric(zad1b(bf,5)[2:7]),3))
+colnames(J)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(J)=c('GLM','cv.glmnet','Firth')
+
+kable(J,format='markdown')
+
+```
+
+# Podpunkt c
+
+```{r z4pc, warning=F, message=F, cache=T}
+
+Y4slope=2*Y4-1
+lambda4=sqrt(n4)/2*qnorm(1-0.1*(1:25)/2/p4)
+
+Db=prepare_data(Y4,X4)
+fg=as.integer(fast_forward(Db,crit=mbic2)$model)
+zad1b(fg,5)[[1]]
+
+slopecoef4=solve_slope(X4,Y4slope,lambda4,model='logistic')$w
+nzslopecoef4=which(slopecoef4!=0)
+
+K=rbind(round(as.numeric(zml2z1b(X4,Y4,5)[[3]][2:7]),3),
+round(as.numeric(zad1b(nzslopecoef4,5)[2:7]),3))
+colnames(K)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(K)=c('mBIC2','SLOPE')
+
+kable(K,format='markdown')
+```
+
+# Podpunkt d
+
+```{r z4dd, message=F, warning=F, cache=T}
+M4=array(0,dim=c(6,5,20))
+
+for(i in 1:20)
+{
+  set.seed(i)
+  n=100
+  p=25
+  Beta4=c(rep(9/sqrt(n),5),rep(0,p-5))
+  X4=matrix(rnorm(n*p),n,p)
+  t4=X4%*%Beta4
+  probs4=1/(1+exp(-t4))
+  Y4=sapply(probs4,function(x){rbinom(1,1,x)})
+  Y4slope=2*Y4-1
+  lambda4=sqrt(n)/2*qnorm(1-0.1*(1:25)/2/p)
+  lf=logistf(Y4~X4)
+  ci=confint(lf)
+  bf=as.numeric(which(ci[-1,1]>0&ci[-1,2]>0))
+  M4[,1,i]=as.numeric(zml2z4a(5,Beta4,X4,Y4)[c(5:7,2:4)])#<- powtorz 20 razy forem nawet, 
+  M4[,2,i]=as.numeric(zad1b(bf,5)[2:7])
+  M4[,3,i]=as.numeric((zml2z1b(X4,Y4,5))[[3]][2:7])
+  M4[,4,i]=as.numeric(zad1b(which(coef(cv.glmnet(X4,Y4))[-1]!=0),5)[2:7])
+  M4[,5,i]=as.numeric(zad1b(which(solve_slope(X4,Y4slope,lambda4,model='logistic')$w!=0),5)[2:7])
+  
+}
+
+
+Z4EM=matrix(0,6,5)
+for(i in 1:6){for (j in 1:5){Z4EM[i,j]=mean(M4[i,j,1:20])}}
+
+colnames(Z4EM)=c('GLM','Firth','mBIC2','LASSO','SLOPE')
+rownames(Z4EM)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+
+kable(t(Z4EM), format='markdown')
+
+```
+
+Funkcja glm ma największe błędy estymacji z wyjątkiem SEphat Najmniejsze FDP ma regresja Firtha. LASSO i funkcja glm wykrywają najwięcej sygnału kosztem FDP.
+
+
+
+
+## Zadanie 5
+
+# Podpunkt a
+
+
+```{r z5pa, warning=F, message=F, cache=T}
+Sigm5=matrix(.3,25,25)
+diag(Sigm5)=1
+
+X5=rmvnorm(100,sigma=Sigm5)
+t5=X5%*%Beta4
+probs5=1/(1+exp(-t5))
+Y5=sapply(probs5,function(x){rbinom(1,1,x)})
+```
+
+```{r z5ee, warning=F, message=F}
+print('glm')
+round(as.numeric(coef(glm(Y5~X5, family=binomial('logit')))[-1]),3)
+print('Regresja Firtha')
+as.numeric(logistf(Y5~X5)$coef[-1])
+lf=logistf(Y5~X5)
+ci=confint(lf)
+bf=as.numeric(which(ci[-1,1]>0&ci[-1,2]>0))
+print('cv.glmnet')
+round(as.numeric(coef(cv.glmnet(X5,Y5))[-1]),3)
+```
+
+# Podpunkt b
+
+```{r z5pb, warning=F, message=F}
+L=rbind(round(as.numeric(zml2z4a(5,Beta4,X5,Y5)[c(5:7,2:4)]),3),
+round(as.numeric(zad1b(which(coef(cv.glmnet(X5,Y5))[-1]!=0),5)[2:7]),3),
+round(as.numeric(zad1b(bf,5)[2:7]),3))
+colnames(L)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(L)=c('GLM','cv.glmnet','Firth')
+
+kable(L,format='markdown')
+```
+
+# Podpunkt c
+
+```{r z5pc, message=F, warning=F, cache=T}
+lambda4=sqrt(n4)/2*qnorm(1-0.1*(1:25)/2/p4)
+
+Y5slope=2*Y5-1
+slopecoef5=solve_slope(X5,Y5slope,lambda4,model='logistic')$w
+nzslopecoef5=which(slopecoef5!=0)
+
+zml2z1b(X5,Y5,5)[[3]][1]
+nzslopecoef5
+
+Z=rbind(round(as.numeric(zml2z1b(X5,Y5,5)[[3]][2:7]),3),
+round(as.numeric(zad1b(nzslopecoef5,5)[2:7]),3))
+colnames(Z)=c('Bbetahat','SEbetahat','SEphat','Prawdziwe odkrycia','Fałszywe odkrycia','FDP')
+rownames(Z)=c('mBIC2','SLOPE')
+kable(Z,format='markdown')
+```
+
+# Podpunkt d
+
+```{r z5d, message=F, warning=F, cache=T}
+
+M5=array(0,dim=c(6,5,20))
+
+for(i in 1:20)
+{
+  set.seed(i)
+  Sigm5=matrix(.3,25,25)
+  diag(Sigm5)=1
+  n=100
+  p=25
+  Beta4=c(rep(9/sqrt(n),5),rep(0,p-5))
+  X5=rmvnorm(100,sigma=Sigm5)
+  t5=X5%*%Beta4
+  probs5=1/(1+exp(-t5))
+  Y5=sapply(probs5,function(x){rbinom(1,1,x)})
+  
+  Y5slope=2*Y5-1
+  lambda4=sqrt(n)/2*qnorm(1-0.1*(1:25)/2/p)
+  lf=logistf(Y5~X5)
+  ci=confint(lf)
+  bf=as.numeric(which(ci[-1,1]>0&ci[-1,2]>0))
+  M5[,1,i]=as.numeric(zml2z4a(5,Beta4,X5,Y5)[c(5:7,2:4)])#<- powtorz 20 razy forem nawet, 
+  M5[,2,i]=as.numeric(zad1b(bf,5)[2:7])
+  M5[,3,i]=as.numeric((zml2z1b(X5,Y5,5))[[3]][2:7])
+  M5[,4,i]=as.numeric(zad1b(which(coef(cv.glmnet(X5,Y5))[-1]!=0),5)[2:7])
+  M5[,5,i]=as.numeric(zad1b(which(solve_slope(X5,Y5slope,lambda4,model='logistic')$w!=0),5)[2:7])
+  
+}
+
+
+Z5EM=matrix(0,6,5)
+for(i in 1:6){for (j in 1:5){Z5EM[i,j]=mean(M5[i,j,1:20])}}
+
+colnames(Z5EM)=c('GLM','Firth','mBIC2','LASSO','SLOPE')
+rownames(Z5EM)=c('Bbetahat','SEbetahat','SEphat',"T",'F','FDP')
+
+kable(t(Z5EM), format='markdown')
+```
+
+Funkcja glm na ponownie największe 2 błędy estymacji. Wprowadzenie korelacji utrudnia znalezienie sygnału. Funkcja glm  i regresja Firtha znajdują poniżej połowy sygnału i przy niskim, ale niezadowalającym FDP. mBIC2 znajduje 80% sygnału przy podobnym FDP jak dwie poprzednie funkcje. LASSO i SLOPE znajdują najwięcej sygnału przy większe ilości fałszywych odkryć, LASSO ma mniejsze FDP.  

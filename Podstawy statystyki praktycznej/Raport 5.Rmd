@@ -1,0 +1,200 @@
+---
+title: "Raport 5"
+author: "Aleksander Milach"
+date: "21 April 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plotrix)
+library(knitr)
+t=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/individuals.dat"))
+tt=read.table(url("http://www.math.uni.wroc.pl/~mbogdan/Podstawy/Dane/table1_6.TXT"))
+
+```
+##Zadanie 1
+
+```{r z1, echo=TRUE, fig.align='center', fig.height=4}
+
+plot(function (x) dgamma(x,30,1),0,50,col="green4",ylab="",main="N(30,sqrt(30)) oraz Gamma(30,1)") 
+plot(function (x) dnorm(x,30/1,sqrt(30/1^2)),0,50,add=TRUE,lty=17,col="cyan3")
+
+plot(function (x) dgamma(x,50,1),0,80,col="green4",ylab="",main="N(50,sqrt(50)) oraz Gamma(50,1)") 
+plot(function (x) dnorm(x,50,sqrt(50)),0,80,add=TRUE,lty=17,col="cyan3")
+
+plot(function (x) dgamma(x,100,1),0,150,col="green4",ylab="",main="N(100,10) oraz Gamma(100,1)")
+plot(function (x) dnorm(x,100,sqrt(100)),0,150,add=TRUE,lty=17,col="cyan3")
+```
+Rzeczywiœcie wiêc $\Gamma(X,1)\sim N(X,\sqrt{X})$.
+
+##Zadanie 2
+```{r z2, echo=TRUE, fig.align='center',fig.height=4}
+barp(dbinom(0:20,20,.5),col="green1")
+plot(function (x) dnorm(x-1,20*0.5,sqrt(20*.5*.5)),0,20,add=TRUE,col="cyan3",  
+     main="B(20,.5) i N(10,sqrt(5))")
+
+barp(dbinom(0:50,50,.5),col="green1")
+plot(function (x) dnorm(x-1,50*0.5,sqrt(50*.5*.5)),0,50,add=TRUE,col="cyan3",  
+     main="B(50,.5) i N(25,sqrt(12.5))")
+
+barp(dbinom(0:100,100,.5),col="green1")
+plot(function (x) dnorm(x-1,100*0.5,sqrt(100*.5*.5)),0,100,add=TRUE,col="cyan3",  
+     main="B(100,.5) i N(50,5)")
+
+barp(dbinom(0:10,20,.1),col="green1")
+plot(function (x) dnorm(x-1,20*0.1,sqrt(20*.1*.9)),0,10,add=TRUE,col="cyan3",  
+     main="B(20,.1) i N(2,sqrt(1.8))")
+
+barp(dbinom(0:20,50,.1),col="green1")
+plot(function (x) dnorm(x-1,50*0.1,sqrt(50*.1*.9)),0,20,add=TRUE,col="cyan3",  
+     main="B(50,.1) i N(5,sqrt(4.5))")
+
+barp(dbinom(0:30,100,.1),col="green1")
+plot(function (x) dnorm(x-1,100*0.1,sqrt(100*.1*.9)),0,30,add=TRUE,col="cyan3",  
+     main="B(100,.1) i N(10,3")
+```
+Rzeczywiœcie wiêc $B(n,p)\sim N(np,\sqrt{np(1-p)})$.
+
+##Zadanie 3
+
+#Podpunkt a(rozk³ad normalny)
+
+```{r z3n, echo=TRUE}
+a1=qt(0.975,99)/10
+b1=matrix(rnorm(1000*100),1000,100)
+d1=apply(b1,1, function(v) {
+  c((mean(v)-a1*sd(v))<=0 & 0<=(mean(v)+a1*sd(v)),sd(v))
+  })
+pu100=mean(d1[1,])
+
+a2=qt(0.975,199)/sqrt(200)
+b2=matrix(rnorm(1000*200),1000,200)
+d2=apply(b2,1, function(v) {
+  c((mean(v)-a2*sd(v))<=0 & 0<=(mean(v)+a2*sd(v)),sd(v))
+})
+pu200=mean(d2[1,])
+
+n100=2*mean(d1[2,])*a1
+n200=2*mean(d2[2,])*a2
+```
+Przedzia³ ufnoœci dla wartoœci oczekiwanej na poziomie 95% dla prób 100 elementowych zawiera `r pu100` œrednich.
+Przedzia³ ufnoœci dla wartoœci oczekiwanej na poziomie 95% dla prób 200 elementowych zawiera `r pu200` œrednich.
+Œrednia szerokoœæ tego przedzia³u ufnoœci dla prób 100 elementowych wynosi `r n100`, zaœ dla prób 200 elementowych
+`r n200`. Dla wiêkszej próby przedzia³ ufnoœci jest zauwa¿alnie krótszy. 
+
+#Podpunkt b(rozk³ad wyk³adniczy)
+
+```{r z3exp, echo=TRUE}
+a3=qt(0.975,99)/10
+b3=matrix(rexp(1000*100),1000,100)
+d3=apply(b3,1, function(v) {
+  c((mean(v)-a3*sd(v))<=1 & 1<=(mean(v)+a3*sd(v)),sd(v))
+})
+expu100=mean(d3[1,])
+
+a4=qt(0.975,199)/sqrt(200)
+b4=matrix(rexp(1000*200),1000,200)
+d4=apply(b4,1, function(v) {
+  c((mean(v)-a4*sd(v))<=1 & 1<=(mean(v)+a4*sd(v)),sd(v))
+})
+expu200=mean(d4[1,])
+
+exp100=2*mean(d3[2,])*a3
+exp200=2*mean(d4[2,])*a4
+```
+Przedzia³ ufnoœci dla wartoœci oczekiwanej na poziomie 95% dla prób 100 elementowych zawiera `r expu100` œrednich.
+Przedzia³ ufnoœci dla wartoœci oczekiwanej na poziomie 95% dla prób 200 elementowych zawiera `r expu200` œrednich.
+Œrednia szerokoœæ tego przedzia³u ufnoœci dla prób 100 elementowych wynosi `r exp100`, zaœ dla prób 200 elementowych
+`r exp200`. Dla wiêkszej próby przedzia³ ufnoœci jest zauwa¿alnie krótszy. 
+
+##Zadanie 4
+
+#Podpunkt a
+```{r z4a, echo=TRUE, fig.align='center'}
+n=dim(t)[1]
+U=sqrt(t[[5]][t[[5]]>=0])
+hist(U,freq=FALSE,main="Pierwiastek z dochodu",col=c("cyan","cyan3","cyan4"),xlab="",ylab="")
+EXU=mean(U)
+EXDoch=mean(t[[5]])
+PR3=table(t[[3]])["3"]/n
+PR6=table(t[[3]])["6"]/n
+a=c(EXU,EXDoch,PR3,PR6)
+kable(t(a),col.names=c("Œredni pierwiastek z dochodu","Œredni dochód","Wykszta³cenie œrednie (%)",  
+                       "Wykszta³cenie wy¿sze (%)"),digits=4,format ="markdown")
+```
+#Podpunkt b
+
+```{r z4b, echo=TRUE, fig.align='center'}
+qq=qnorm(0.975)
+
+Y=sapply(1:200,function(i) sample(n,200))
+X=apply(Y,2,function(v){
+  u=sqrt(t[v,5][t[v,5]>=0])
+  j=mean(u)
+  k=mean(t[v,5])
+  l=table(t[v,3])["3"]/200
+  m=table(t[v,3])["6"]/200
+  o=j-sd(u)*qq/sqrt(length(u))<=EXU & EXU<=j+sd(u)*qq/sqrt(length(u))
+  p=k-sd(t[v,5])*qq/sqrt(length(u))<=EXDoch & EXDoch<=k+sd(t[v,5])*qq/sqrt(length(u))
+  q=l-sd(t[v,3]=="3")*qq/sqrt(length(u))<=PR3 & PR3<=l+sd(t[v,3]=="3")*qq/sqrt(length(u))
+  r=m-sd(t[v,3]=="6")*qq/sqrt(length(u))<=PR6 & PR6<=m+sd(t[v,3]=="6")*qq/sqrt(length(u))
+  c(j,k,l,m,o,p,q,r)
+})
+
+W=Y[,1]
+
+K1=c(Pu5l=mean(sqrt(t[W,5][t[W,5]>=0]))-sd(sqrt(t[W,5][t[W,5]>=0]))  
+     *qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+Pu5p=mean(sqrt(t[W,5][t[W,5]>=0]))+sd(sqrt(t[W,5][t[W,5]>=0]))  
+*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+X[5,1])
+K2=c(Pu6l=mean(t[W,5])-sd(t[W,5])*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+Pu6p=mean(t[W,5])+sd(t[W,5])*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+X[6,1])
+K3=c(Pu7l=table(t[W,3])["3"]/200-sd(t[W,3]=="3")*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+Pu7p=table(t[W,3])["3"]/200+sd(t[W,3]=="3")*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+X[7,1])
+K4=c(Pu8l=table(t[W,3])["6"]/200-sd(t[W,3]=="6")*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+Pu8p=table(t[W,3])["6"]/200+sd(t[W,3]=="6")*qq/sqrt(length(sqrt(t[W,5][t[W,5]>=0]))),
+X[8,1])
+MMM=matrix(c(K1,K2,K3,K4),3,4)
+rownames(MMM)=c("Lewy koniec PU95%","Prawy koniec PU95%","Czy estymowana wartoœæ jest w PU")
+kable(MMM,col.names=c("Pierwiastek z dochodu","Œredni dochód","Wykszta³cenia œrednie(%)",  
+                      "Wykszta³cenie wy¿sze(%)"),digits=3,row.names=TRUE,format="markdown")
+```
+#Podpunkt c
+
+Na zielono oznaczona jest estymowana wartoœæ.
+```{r Z4c, echo=TRUE, fig.align='center',fig.height=4}
+hist(X[1,],xlab="Wartoœæi estymatorów",main="Pierwiastek z dochodu",col="cyan1")
+abline(v=EXU,col="green4",lwd=2)
+hist(X[2,],xlab="Wartoœci estymatorów",main="Dochód",col="cyan1")
+abline(v=EXDoch,col="green4",lwd=2)
+hist(X[3,],xlab="Wartoœci estymatorów",main="Wykszta³cenie œrednie(%)",col="cyan1")
+abline(v=PR3,col="green4",lwd=2)
+hist(X[4,],xlab="Wartoœci estymatorów",main="Wykszta³cenie wy¿sze(%)",col="cyan1")
+abline(v=PR6,col="green4",lwd=2)
+U95=mean(X[5,])
+Doch95=mean(X[6,])
+PR395=mean(X[7,])
+PR695=mean(X[8,])
+print("Jak czêsto wartoœc estymatora wpada³a do PU95%?")
+kable(t(c(U95,Doch95,PR395,PR695)),digits=3,col.names=c("Pierwiastek z dochodu",  
+        "Dochód","Wykszta³cenie œrednie","Wykszta³cenie wy¿sze"),  
+      format ="markdown")
+```
+#Zadanie 5
+
+```{r z5, echo=TRUE}
+qqq=qt(0.975,dim(tt)[1]-1)/sqrt(dim(tt)[1])
+
+PuIQL=mean(tt[[3]])-qqq*sd(tt[[3]])
+PuIQP=mean(tt[[3]])+qqq*sd(tt[[3]])
+PuTSL=mean(tt[[5]])-qqq*sd(tt[[5]])
+PuTSP=mean(tt[[5]])+qqq*sd(tt[[5]])
+```
+Przedzia³ 95% ufnoœci dla wyniku testu IQ wynosi $[`r PuIQL`,`r PuIQP`]$. Przedzia³ 95% ufnoœci dla wyniku testu samooceny wynosi $[`r PuTSL`,`r PuTSP`]$.

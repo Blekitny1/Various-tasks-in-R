@@ -1,0 +1,75 @@
+---
+title: "Raport 3"
+author: "Aleksander Milach"
+date: "12 April 2018"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plotrix)
+```
+
+## Zadanie 1
+
+#Podpunkt a
+Obliczmy warto??a oczekiwan1 i wariancje rozk3adu wyk3adniczego z parametrem $\lambda$:
+
+$EX=\int_{0}^{\infty} x\lambda e^{-\lambda x}dx=-\frac{e^{-\lambda x}(\lambda x+1)}{\lambda}|_0^\infty =\frac{1}{\lambda}$
+
+$VarX=EX^2-(EX)^2=\int_{0}^{\infty} x^2\lambda e^{-\lambda x}dx-\frac{1}{\lambda^2}=-\frac{e^{-\lambda x}(\lambda^2x^2+2\lambda x+2)}{\lambda^2}|_0^\infty=\frac{2}{\lambda^2}-\frac{1}{\lambda^2}=\frac{1}{\lambda^2}$.
+
+#Podpunkt b
+
+```{r dystry, echo=TRUE, fig.align='center'}
+
+a=seq(-1,5,by=0.01)
+matplot(a,cbind(pexp(a,1),pexp(a,2),pexp(a,3)),main="Dystrybuanta rozk3adu wyk3adniczego  
+        z parametrem p",type="l",xlab="x",ylab="F(x)",col=c("green4","cyan3","deeppink3"))
+legend("bottomright",c("p=1","p=2","p=3"), col=c("green4","cyan3","deeppink3"), pch=20)
+
+```
+
+#Podpunkt c
+
+Obliczmy prawdopodobienstwo, ??e zmienna losowa z rozk3adu wyk3adniczego z parametrem $\lambda$=2 wpadnie do odcinka $EX\pm 2\sqrt{VarX}$.
+
+$EX- 2\sqrt{VarX}=\frac{1}{2}-2 \sqrt{ \frac{1}{2^2}}=\frac{1}{2}-2\cdot\frac{1}{2}=-0.5$
+
+$EX+ 2\sqrt{VarX}=\frac{1}{2}+2 \sqrt{ \frac{1}{2^2}}=\frac{1}{2}+2\cdot\frac{1}{2}=1.5$
+```{r liczenie, echo=TRUE}
+b=pexp(1.5,2)-pexp(-0.5,2)
+
+```
+
+$P(|X|\leq EX \pm 2\sqrt{VarX})=\int_{-0.5}^{1.5} 2e^{-2x}dx=1-e^{-2x}|_{-0.5}^{1.5}=$ `r b`.
+
+#Podpunkt d
+```{r losowanie, echo=TRUE}
+d=rexp(1000,2)
+f=mean(d>=-0.5&d<=1.5)
+```
+Wynik obliczen: `r b`, wynik na podstawie 1000 elementowej próby losowej: `r f`.
+
+##Zadanie 2
+
+#Podpunkt a
+```{r dbinom, echo=TRUE,fig.align='center',fig.height=4}
+
+barp(dbinom(0:300,300,0.7),col="cyan3",xlim=c(170,250))
+```
+Warto??a oczekiwana i wariancja w rozk3adzie dwumianowym z parametrami p i n wynosz1:
+
+$EX=np \quad VarX=n\sqrt{p(1-p)}$.
+
+#Podpunkt b
+```{r rbinom, echo=TRUE}
+g=rbinom(1000,300,0.7)
+h=mean(g>=300*0.7-2*sqrt(300*.7*.3) & g<=300*0.7+2*sqrt(300*.7*.3))
+j=pbinom(300*0.7+2*sqrt(300*.7*.3),300,.7)-pbinom(300*0.7-2*sqrt(300*.7*.3),300,.7)
+
+```
+Prawdopodobienstwo, ??e zmienna losowa z rozk3adu dwumianowego z parametrem 0,7 wpadnie do odcinka $EX\pm 2\sqrt{VarX}$ to `r j`. W wygenerowanej 1000 elementowej próbie wpad3o tam `r h` obserwacji.

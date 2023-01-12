@@ -1,0 +1,102 @@
+---
+title: "Raport 7 zadanie 1b"
+author: "Aleksander Milach"
+date: "27 May 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+```{r z1, echo=TRUE}
+k05=qnorm(1-.05/2)
+k10=qnorm(1-.1/2)
+```
+Wartoœci krytyczne dla Z wynosz¹ `r k05` dla $\alpha$=0,05 oraz `r k10` dla $\alpha$=0,1.
+
+Z obliczeñ wykonanych na laboratorium szukane N w zale¿noœci od $\alpha$ wyraza sie wzorem $(\frac{\Phi^{-1}(\frac{1,95}{2})\sqrt{\alpha(1-\alpha)}}{0,1\alpha})^2$.
+
+```{r z2i, echo=TRUE}
+N05=((qnorm(1.95/2)*sqrt(.05*.95))/.1/.05)^2
+N10=((qnorm(1.95/2)*sqrt(.1*.9))/.1/.1)^2 
+
+n=50
+a=.1
+v10=numeric(1000)
+for(j in 1:1000)
+{
+  licz=0
+  for(i in 1:N10)
+  {
+    p1=rnorm(n)
+    p2=rnorm(n)
+    z=abs(mean(p1)-mean(p2))*sqrt(n/2)
+    if(z>k10){licz<-licz+1}
+  }
+  v10[j]<-licz/N10
+}
+mi501=mean(v10)
+p501=length(v10[v10>1.1*a | v10<0.9*a])
+
+n=100
+a=.1
+v11=numeric(1000)
+for(j in 1:1000)
+{
+  licz=0
+  for(i in 1:N10)
+  {
+    p1=rnorm(n)
+    p2=rnorm(n)
+    z=abs(mean(p1)-mean(p2))*sqrt(n/2)
+    if(z>k10){licz<-licz+1}
+  }
+  v11[j]<-licz/N10
+}
+mi502=mean(v11)
+p502=length(v11[v11>1.1*a | v11<0.9*a])
+
+n=50
+a=.05
+v12=numeric(1000)
+for(j in 1:1000)
+{
+  licz=0
+  for(i in 1:N05)
+  {
+    p1=rnorm(n)
+    p2=rnorm(n)
+    z=abs(mean(p1)-mean(p2))*sqrt(n/2)
+    if(z>k05){licz<-licz+1}
+  }
+  v12[j]<-licz/N05
+}
+mi503=mean(v12)
+p503=length(v12[v12>1.1*a | v12<0.9*a])
+
+
+n=100
+a=.05
+v13=numeric(1000)
+for(j in 1:1000)
+{
+  licz=0
+  for(i in 1:N05)
+  {
+    p1=rnorm(n)
+    p2=rnorm(n)
+    z=abs(mean(p1)-mean(p2))*sqrt(n/2)
+    if(z>k05){licz<-licz+1}
+  }
+  v13[j]<-licz/N05
+}
+mi504=mean(v13)
+p504=length(v13[v13>1.1*a | v13<0.9*a])
+
+kable(matrix(c(mi501,p501,mi502,p502,mi503,p503,mi504,p504),ncol=4),col.names=c("n=50,a=.1",  
+                                                                                "n=100,a=.1","n=50,a=.05","n=100,a=.05"),format="markdown")
+```
+Dla obliczonych N05 i N10, tak jak chcieliœmy, b³¹d estymacji by³ wiêkszy ni¿ 10%$\alpha$ dla oko³o 50 symulacjach. 
+Œrednia wartoœæ prawdopodobieñstwa pope³nienia b³êdu pierwszego rodzaju w naszych symulacjach jest bardzo bliska alfa.

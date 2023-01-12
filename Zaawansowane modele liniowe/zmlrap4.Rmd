@@ -1,0 +1,121 @@
+---
+title: "Raport 4"
+author: "Aleksander Milach"
+date: "9 June 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(datasets)
+library(MASS)
+```
+
+```{r pa, fig.height=3.8}
+attach(warpbreaks)
+boxplot(breaks~wool)
+```
+
+```{r pb, fig.height=3.8}
+LB=log(breaks)
+boxplot(LB~wool)
+```
+
+```{r pc}
+A=breaks[which(wool=='A')]
+B=breaks[which(wool=='B')]
+t=t.test(A,B)$p.value
+```
+
+Dla testu o różnicy średnich dla typów wełny A i B wynosi `r t`. Wykazuje on brak istotności typu wełny na ilość pęknięć.
+
+```{r pde, fig.height=3.4}
+par(mfrow=c(1,2))
+boxplot(breaks~tension,main='breaks~tension',xlab='',ylab='')
+boxplot(LB~tension,main='logbreaks~tension',xlab='',ylab='')
+par(mfrow=c(1,1))
+```
+
+```{r pf}
+N=lm(LB~wool+tension, data=warpbreaks)
+Q=round(summary(N)$coefficients[,4],3)
+names(Q)[1]='Intercept'
+kable(t(Q),format = 'markdown')
+```
+
+```{r ph}
+V=glm(breaks~wool+tension, data=warpbreaks, family='poisson')
+W=round(summary(V)$coefficients[,4],3) # no chyba tu sa lepsze wyniki bo boxplot dla wool
+names(W)[1]='Intercept'
+kable(t(W),format='markdown')
+```
+
+Wyniki wszystkich testów istotności dla regresji Poissona wykazują istotność każdej ze zmiennych. Jest to bardziej wiarygodne od wyników regresji wielokrotnej, ponieważ na powyższych boxplotach każdy z nich się od siebie różni.
+
+```{r pj}
+C=glm.nb(breaks~wool+tension, data=warpbreaks)
+E=round(summary(C)$coefficients[,4],3) # welna na granicy istotnosci
+names(E)[1]='Intercept'
+kable(t(E),format='markdown')
+```
+
+Dla regresji dla rozkładu ujemnego dwumianowego wszystkie zmienne są zdecydowanie isotne z wyjątkiem typu wełny, która jest na granicy istotności.
+
+```{r pgik}
+R=exp(c(predict(N)[10],predict(V)[10],predict(C)[10]))
+names(R)=c('lm','glm poisson','glm.nb')
+kable(t(R),format='markdown')
+```
+
+Oczekiwana liczba pęknięć dla regresji wielokorotnej jest zauważalnie mniejsza od pozostałych predykcji, które są do siebie bardzo zbliżone.
+
+```{r pl}
+v=summary(N)$coefficients[,1]
+AL=v[1]
+AM=v[1]+v[3]
+AH=v[1]+v[4]
+BL=v[1]+v[2]
+BM=v[1]+v[2]+v[3]
+BH=v[1]+v[2]+v[4]
+X=c(AL=v[1],AM=v[1]+v[3],AH=v[1]+v[4],
+BL=v[1]+v[2],BM=v[1]+v[2]+v[3],BH=v[1]+v[2]+v[4])
+plot(c(rep(1,3),rep(2,3)),X,col=c('deeppink3','cyan3','green3'),pch=19,xlab='',ylab='',  
+     main='Średnia ilość pęknięć dla obu typów wełny')
+abline(b=BL-AL,a=2*AL-BL,col='deeppink3')
+abline(b=BM-AM,a=2*AM-BM,col='cyan3')
+abline(b=BH-AH,a=2*AH-BH,col='green3')
+legend(x=1.5,y=3.6,legend=c('low','medium','high'),col=c('deeppink3','cyan3','green3'),pch=19)
+```
+
+```{r pm}
+
+ML=summary(lm(breaks~.*., data=warpbreaks))$coefficients
+MP=summary(glm(breaks~.*.,data=warpbreaks,family = 'poisson'))$coefficients
+MNB=summary(glm.nb(breaks~.*.,data=warpbreaks))$coefficients
+
+mat=round(rbind(ML[,4],MP[,4],MNB[,4]),3)
+rownames(mat)=c('lm','glm poisson','glm.nb')
+
+pred=exp(c(predict(lm(LB~.*., data=warpbreaks))[10],
+predict(glm(breaks~.*.,data=warpbreaks,family = 'poisson'))[10],
+predict(glm.nb(breaks~.*.,data=warpbreaks))[10]))
+names(pred)=c('lm','glm poisson','glm.nb')
+kable(mat,format='markdown')
+```
+
+```{r nwm co}
+kable(t(pred),format='markdown')
+```
+
+Różnica między predykcjami dla regresji wielokrotnej i pozostałych modeli jest jeszcze większe niż w przypadku bez interakcji.
+
+```{r pn}
+
+dev=c(deviance(glm(breaks~.*.,data=warpbreaks,family = 'poisson')),
+deviance(glm.nb(breaks~.*.,data=warpbreaks)))
+names(dev)=c('glm poisson','glm.nb')
+kable(t(dev),format='markdown')
+```
+
+Dla regresji dla rozkładu ujemnego dwumianowego residual deviance jest mniejsza, zatem ten model bardziej pasuje do danych.
