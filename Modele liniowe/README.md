@@ -1,4 +1,4 @@
-# Considered topics:
+# Linear models:
 - two dimensional normal distribution
 - affine transformation of multinomial normal distribution
 - correlation plots
