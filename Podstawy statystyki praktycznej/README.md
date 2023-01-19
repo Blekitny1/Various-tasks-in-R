@@ -1,4 +1,4 @@
-# Considered topics:
+# Foundations of practical statistics:
 - simple histograms, boxplots, barplots, scatterplots, pie charts
 - cummulative avarage and its convergence
 - QQ plots and their interpretation
