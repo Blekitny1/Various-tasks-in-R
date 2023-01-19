@@ -1,6 +1,4 @@
-# Analiza dużych zbiorów danych
-
-Considered topics:
+# Considered topics:
 - linear regression ordinary least squares estimator
 - ridge regression estimator
 - information criteria (AIC, BIC and other)
