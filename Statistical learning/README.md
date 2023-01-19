@@ -4,4 +4,4 @@
 - LASSO estimator and influence of choice of tuning parameter $\lambda$
 - family wise error rate
 - James-Stein estimator
-- various elements of Compressed sensing theory
+- various elements of compressed sensing theory
