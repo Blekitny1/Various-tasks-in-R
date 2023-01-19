@@ -1,4 +1,4 @@
-# Considered topics:
+# Advanced linear models:
 - logistic regression
 1. different link functions
 2. hypothesis testing for regression parameters
